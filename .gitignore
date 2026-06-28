@@ -1,0 +1,24 @@
+# --- Büyük model dosyaları (kullanıcı kendisi indirir) ---
+models/*
+!models/.gitkeep
+*.gguf
+
+# --- llama.cpp ikili dosyaları (kullanıcı kendisi indirir) ---
+bin/*
+!bin/.gitkeep
+*.zip
+*.exe
+*.dll
+
+# --- Python ---
+__pycache__/
+*.pyc
+
+# --- Editör / araç ---
+.claude/
+.vscode/
+.idea/
+
+# --- Windows ---
+Thumbs.db
+desktop.ini
