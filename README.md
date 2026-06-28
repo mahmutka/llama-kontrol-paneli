@@ -59,7 +59,7 @@ and shows its output as a live log.
 
 ## 🖱️ Usage
 
-1. In the panel, click **① Model Loading → ▶ Start** (the model loads onto the GPU, ~10–20 s).
+1. In **① Model Loading**, pick a model from the **Model** dropdown (lists every `.gguf` in `models/`; use ↻ refresh after adding a new file), then click **▶ Start** (the model loads onto the GPU, ~10–20 s).
 2. Play with the **② Generation** settings — these are live; you see their effect as you send messages.
 3. Wondering what a setting does? Click the **ⓘ** button next to it.
 4. Watch the **🎮 GPU VRAM** strip at the top to see memory fill up and whether it overflows, live.

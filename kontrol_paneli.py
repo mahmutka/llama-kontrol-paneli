@@ -45,6 +45,28 @@ def find_models():
 
 MODEL, MMPROJ = find_models()
 
+
+def list_models():
+    """All .gguf files in models/, split into main models and mmproj projectors."""
+    mdir = os.path.join(BASE, "models")
+    models, mmprojs = [], []
+    if os.path.isdir(mdir):
+        for f in sorted(os.listdir(mdir)):
+            if not f.lower().endswith(".gguf"):
+                continue
+            (mmprojs if "mmproj" in f.lower() else models).append(f)
+    return models, mmprojs
+
+
+def resolve_paths(cfg):
+    """Pick the model/mmproj to launch: the one chosen in the UI, else the auto-detected default."""
+    mdir = os.path.join(BASE, "models")
+    chosen = os.path.basename((cfg.get("model") or "").strip())
+    model = os.path.join(mdir, chosen) if chosen else MODEL
+    mmp = os.path.basename((cfg.get("mmproj_file") or "").strip())
+    mmproj = os.path.join(mdir, mmp) if mmp else MMPROJ
+    return model, mmproj
+
 STATE = {
     "proc": None,
     "config": {},
@@ -154,9 +176,10 @@ def stop_server():
 
 
 def build_args(cfg):
-    a = [LLAMA, "-m", MODEL, "--host", "127.0.0.1", "--port", str(LLAMA_PORT)]
-    if cfg.get("mmproj", True) and MMPROJ and os.path.exists(MMPROJ):
-        a += ["--mmproj", MMPROJ]
+    model, mmproj = resolve_paths(cfg)
+    a = [LLAMA, "-m", model, "--host", "127.0.0.1", "--port", str(LLAMA_PORT)]
+    if cfg.get("mmproj", True) and mmproj and os.path.exists(mmproj):
+        a += ["--mmproj", mmproj]
     else:
         a += ["--no-mmproj"]
     a += ["-ngl", str(cfg.get("ngl", 40))]
@@ -192,7 +215,8 @@ def build_args(cfg):
 
 
 def start_server(cfg):
-    if not MODEL or not os.path.exists(MODEL):
+    model, _ = resolve_paths(cfg)
+    if not model or not os.path.exists(model):
         log("ERROR: no .gguf model found in models/. Download a model and put it there.")
         return False
     stop_server()
@@ -280,6 +304,16 @@ class Handler(BaseHTTPRequestHandler):
         if self.path.startswith("/api/gpu"):
             STATE["gpu_want"] = time.time()   # wake the sampler thread
             self._send_json(STATE["gpu"])
+            return
+
+        if self.path.startswith("/api/models"):
+            models, mmprojs = list_models()
+            self._send_json({
+                "models": models,
+                "mmprojs": mmprojs,
+                "default": os.path.basename(MODEL) if MODEL else "",
+                "current": os.path.basename(STATE["config"].get("model", "")) if STATE["config"].get("model") else "",
+            })
             return
 
         self._send_json({"error": "not found"}, 404)

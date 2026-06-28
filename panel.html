@@ -171,6 +171,11 @@
       </div>
       <div class="body">
         <div class="field">
+          <label>Model</label>
+          <select id="modelSel"></select>
+          <div class="hint">Drop <code>.gguf</code> files into the <code>models/</code> folder, then pick one here (no browser upload needed). <span id="modelRefresh" style="cursor:pointer;color:var(--accent)">↻ refresh</span></div>
+        </div>
+        <div class="field">
           <label>GPU layers (-ngl) <span class="val" id="nglVal">40</span></label>
           <input type="range" id="ngl" min="0" max="99" step="1" value="40" />
           <div class="hint">0 = CPU only (slow). 99 = everything on GPU (if it doesn't fit in your VRAM <b>it spills to RAM or crashes → watch the log</b>).</div>
@@ -692,6 +697,7 @@ function genPreset(k){
 /* ---- server control ---- */
 function serverConfig(){
   return {
+    model:$('modelSel').value,
     ngl:+$('ngl').value, ctx:+$('ctx').value, batch:+$('batch').value, ubatch:+$('ubatch').value,
     flash_attn:$('fa').value, rope_base:$('rope_base').value.trim(), rope_scale:$('rope_scale').value.trim(),
     ctk:$('ctk').value, ctv:$('ctv').value,
@@ -738,6 +744,29 @@ async function loadLogs(){
   }catch(e){}
 }
 poll(); setInterval(poll,1500);
+
+/* ---- model dropdown (lists .gguf files in models/) ---- */
+async function loadModels(){
+  try{
+    const d=await(await fetch('/api/models')).json();
+    const sel=$('modelSel'), keep=sel.value;
+    sel.innerHTML='';
+    if(!d.models || !d.models.length){
+      sel.innerHTML='<option value="">— no .gguf in models/ —</option>';
+      return;
+    }
+    for(const m of d.models){
+      const o=document.createElement('option'); o.value=m; o.textContent=m; sel.appendChild(o);
+    }
+    // keep current selection, else the running/auto-detected one, else first
+    sel.value = (keep && d.models.includes(keep)) ? keep
+              : (d.current && d.models.includes(d.current)) ? d.current
+              : (d.default && d.models.includes(d.default)) ? d.default
+              : d.models[0];
+  }catch(e){}
+}
+$('modelRefresh').addEventListener('click',loadModels);
+loadModels();
 
 /* ---- live GPU memory meter ---- */
 const GB=1073741824; let gpuHist=[]; const GPU_N=80;
