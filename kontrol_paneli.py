@@ -1,22 +1,22 @@
 # -*- coding: utf-8 -*-
 """
-llama.cpp KONTROL PANELI  (yerel LLM laboratuvari)
---------------------------------------------------
-Tarayicidan hem URETIM ayarlariyla (temperature, top_k...) hem de
-MODEL YUKLEME ayarlariyla (-ngl, RoPE frekansi, KV cache tipi, baglam...)
-oynamani saglayan kucuk bir arac. Yalnizca Python standart kutuphanesini
-kullanir (ekstra kurulum YOK).
+llama.cpp CONTROL PANEL  (local LLM lab)
+----------------------------------------
+A small tool that lets you play, from the browser, with both GENERATION
+settings (temperature, top_k, ...) and MODEL LOADING settings (-ngl, RoPE
+frequency, KV cache type, context, ...). Uses only the Python standard
+library (NO extra install).
 
-Modelden bagimsizdir: models/ klasorundeki ilk .gguf dosyasini otomatik
-secer (adinda "mmproj" gecen dosyayi gorsel projektor olarak ayirir).
+Model-agnostic: it auto-selects the first .gguf file in models/ (a file
+whose name contains "mmproj" is treated as the vision projector).
 
-Calisma sekli:
-  * Bu betik PANEL_PORT (8080) uzerinde calisir, arayuzu (panel.html) sunar.
-  * "Sunucuyu Baslat" deyince arka planda llama-server.exe'yi
-    LLAMA_PORT (8081) uzerinde, senin sectigin parametrelerle baslatir.
-  * Sohbet istekleri panel -> llama-server'a yonlendirilir (proxy).
-  * llama-server'in tum ciktilari yakalanir; canli LOG ekraninda gorunur,
-    boylece model "bozulursa" / bellek tasarsa aninda gorursun.
+How it works:
+  * This script runs on PANEL_PORT (8080) and serves the UI (panel.html).
+  * When you click "Start", it launches llama-server.exe in the background
+    on LLAMA_PORT (8081) with the parameters you chose.
+  * Chat requests are forwarded from the panel to llama-server (proxy).
+  * All llama-server output is captured and shown in the live LOG panel,
+    so you can instantly see the model "break" or memory overflow.
 """
 import os, sys, json, time, threading, collections, subprocess, urllib.request
 from urllib.error import URLError, HTTPError
@@ -29,7 +29,7 @@ LLAMA_PORT = 8081
 
 
 def find_models():
-    """models/ icindeki ilk .gguf'u model, adinda 'mmproj' geceni projektor sayar."""
+    """Treat the first .gguf in models/ as the model, the one named 'mmproj' as the projector."""
     mdir = os.path.join(BASE, "models")
     model = mmproj = None
     if os.path.isdir(mdir):
@@ -55,11 +55,11 @@ STATE = {
 }
 LOCK = threading.Lock()
 
-# ---- GPU bellek izleme (AMD/Intel/NVIDIA fark etmez: Windows perf sayaclari) ----
+# ---- GPU memory monitoring (works for AMD/Intel/NVIDIA: Windows perf counters) ----
 CREATE_NO_WINDOW = 0x08000000
 
-# Adaptor basina "Dedicated Usage" (VRAM) + "Shared Usage" (VRAM tasinca kullanilan RAM).
-# En cok VRAM kullanan adaptoru (modeli calistiran karti) secip iki degeri byte olarak yazar.
+# Per-adapter "Dedicated Usage" (VRAM) + "Shared Usage" (RAM used when VRAM overflows).
+# Picks the adapter using the most VRAM (the card running the model) and prints both as bytes.
 PS_GPU = (
     "$g=@{};"
     "(Get-Counter '\\GPU Adapter Memory(*)\\Dedicated Usage',"
@@ -74,7 +74,7 @@ PS_GPU = (
 
 
 def detect_vram_total():
-    """Gercek VRAM boyutu (byte). Win32 AdapterRAM 4 GB'da kirpildigi icin registry'den okunur."""
+    """Real VRAM size (bytes). Read from the registry because Win32 AdapterRAM is capped at 4 GB."""
     try:
         import winreg
         base = r"SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}"
@@ -112,7 +112,7 @@ def gpu_sample_once():
 
 
 def gpu_sampler():
-    """Yalnizca tarayici son 5 sn icinde sordugunda olcum yapar (bos dururken sessiz)."""
+    """Only samples when the browser has asked within the last 5 s (quiet while idle)."""
     while True:
         if time.time() - STATE["gpu_want"] < 5:
             r = gpu_sample_once()
@@ -134,14 +134,14 @@ def _reader(proc):
         if raw == "" and proc.poll() is not None:
             break
         log(raw)
-    log("──────── [llama-server SURECI SONLANDI] ────────")
+    log("──────── [llama-server PROCESS EXITED] ────────")
 
 
 def stop_server():
     with LOCK:
         p = STATE["proc"]
         if p and p.poll() is None:
-            log("──────── [DURDURULUYOR...] ────────")
+            log("──────── [STOPPING...] ────────")
             try:
                 p.terminate()
                 try:
@@ -149,7 +149,7 @@ def stop_server():
                 except Exception:
                     p.kill()
             except Exception as e:
-                log("durdurma hatasi: %s" % e)
+                log("stop error: %s" % e)
         STATE["proc"] = None
 
 
@@ -176,10 +176,10 @@ def build_args(cfg):
         a += ["-ctk", cfg["ctk"]]
     if cfg.get("ctv"):
         a += ["-ctv", cfg["ctv"]]
-    # --- düşünme bütçesi (aç/kapat canlı olarak istekte chat_template_kwargs ile yapılır) ---
+    # --- thinking budget (turning it on/off is done live per-request via chat_template_kwargs) ---
     if str(cfg.get("rbudget", "")).strip():
         a += ["--reasoning-budget", str(cfg["rbudget"])]
-    # --- diğer sunucu bayrakları ---
+    # --- other server flags ---
     if str(cfg.get("parallel", "")).strip():
         a += ["-np", str(cfg["parallel"])]
     if cfg.get("nkvo"):
@@ -193,14 +193,14 @@ def build_args(cfg):
 
 def start_server(cfg):
     if not MODEL or not os.path.exists(MODEL):
-        log("HATA: models/ klasorunde .gguf model bulunamadi. Bir model indirip oraya koy.")
+        log("ERROR: no .gguf model found in models/. Download a model and put it there.")
         return False
     stop_server()
     args = build_args(cfg)
     log("")
-    log("════════ [BASLATILIYOR] ════════")
+    log("════════ [STARTING] ════════")
     log(" ".join('"%s"' % x if " " in x else x for x in args))
-    log("════════════════════════════════")
+    log("════════════════════════════")
     try:
         proc = subprocess.Popen(
             args, cwd=BASE,
@@ -208,7 +208,7 @@ def start_server(cfg):
             text=True, encoding="utf-8", errors="replace", bufsize=1,
         )
     except Exception as e:
-        log("BASLATMA HATASI: %s" % e)
+        log("START ERROR: %s" % e)
         return False
     with LOCK:
         STATE["proc"] = proc
@@ -234,9 +234,9 @@ class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
     def log_message(self, *a):
-        pass  # gurultuyu kapat
+        pass  # silence the noise
 
-    # -------- yardimcilar --------
+    # -------- helpers --------
     def _send_json(self, obj, code=200):
         body = json.dumps(obj).encode("utf-8")
         self.send_response(code)
@@ -278,7 +278,7 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         if self.path.startswith("/api/gpu"):
-            STATE["gpu_want"] = time.time()   # ornekleyici thread'i uyandir
+            STATE["gpu_want"] = time.time()   # wake the sampler thread
             self._send_json(STATE["gpu"])
             return
 
@@ -303,10 +303,10 @@ class Handler(BaseHTTPRequestHandler):
 
         self._send_json({"error": "not found"}, 404)
 
-    # -------- llama-server'a yonlendir (streaming) --------
+    # -------- forward to llama-server (streaming) --------
     def _proxy_stream(self, path, body):
         if not is_running():
-            self._send_json({"error": "Sunucu kapali. Once 'Sunucuyu Baslat' de."}, 503)
+            self._send_json({"error": "Server is off. Click 'Start' first."}, 503)
             return
         url = "http://127.0.0.1:%d%s" % (LLAMA_PORT, path)
         req = urllib.request.Request(
@@ -324,7 +324,7 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(detail.encode("utf-8"))
             return
         except URLError as e:
-            self._send_json({"error": "llama-server'a ulasilamadi: %s" % e}, 502)
+            self._send_json({"error": "could not reach llama-server: %s" % e}, 502)
             return
 
         self.send_response(200)
@@ -334,7 +334,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Connection", "close")
         self.end_headers()
         try:
-            for line in up:           # SSE satir satir aktar (dusuk gecikme)
+            for line in up:           # stream SSE line by line (low latency)
                 self.wfile.write(line)
                 self.wfile.flush()
         except Exception:
@@ -343,18 +343,18 @@ class Handler(BaseHTTPRequestHandler):
 
 def main():
     print("=" * 60)
-    print(" llama.cpp KONTROL PANELI  (yerel LLM laboratuvari)")
-    print(" Tarayicidan ac:  http://127.0.0.1:%d" % PANEL_PORT)
-    print(" Kapatmak icin bu pencerede Ctrl+C")
+    print(" llama.cpp CONTROL PANEL  (local LLM lab)")
+    print(" Open in your browser:  http://127.0.0.1:%d" % PANEL_PORT)
+    print(" Press Ctrl+C in this window to quit")
     print("=" * 60)
     if not os.path.exists(LLAMA):
-        print("\n[!] UYARI: bin/llama-server.exe yok. llama.cpp surumunu indirip bin/ icine cikar.\n")
+        print("\n[!] WARNING: bin/llama-server.exe missing. Download a llama.cpp release and extract it into bin/.\n")
     if not MODEL:
-        print("\n[!] UYARI: models/ klasorunde .gguf model yok. Bir model indirip oraya koy.\n")
+        print("\n[!] WARNING: no .gguf model in models/. Download a model and put it there.\n")
     else:
-        print(" Secilen model: %s" % os.path.basename(MODEL))
+        print(" Selected model: %s" % os.path.basename(MODEL))
         if MMPROJ:
-            print(" Gorsel projektor: %s" % os.path.basename(MMPROJ))
+            print(" Vision projector: %s" % os.path.basename(MMPROJ))
     STATE["gpu"]["total"] = detect_vram_total()
     threading.Thread(target=gpu_sampler, daemon=True).start()
     srv = ThreadingHTTPServer(("127.0.0.1", PANEL_PORT), Handler)
@@ -365,7 +365,7 @@ def main():
     finally:
         stop_server()
         srv.server_close()
-        print("\nKapatildi.")
+        print("\nShut down.")
 
 
 if __name__ == "__main__":

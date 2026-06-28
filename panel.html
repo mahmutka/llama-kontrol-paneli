@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Yerel LLM · Kontrol Paneli (llama.cpp laboratuvarı)</title>
+<title>Local LLM · Control Panel (llama.cpp lab)</title>
 <style>
   :root{
     --bg:#0b0f14; --panel:#11161d; --panel2:#1a212b; --border:#28323f;
@@ -15,7 +15,7 @@
   body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,sans-serif;
     display:flex;height:100vh;overflow:hidden;font-size:14px;}
 
-  /* ---- Sol ayar paneli ---- */
+  /* ---- Left settings panel ---- */
   .sidebar{width:360px;min-width:360px;background:var(--panel);border-right:1px solid var(--border);
     display:flex;flex-direction:column;overflow-y:auto;}
   .brand{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px;
@@ -62,13 +62,13 @@
   .chip.bad{border-color:#5a2b2b;color:#f0a39c;}
   .chip.bad:hover{border-color:var(--danger);}
 
-  /* ---- Sağ taraf ---- */
+  /* ---- Right side ---- */
   .main{flex:1;display:flex;flex-direction:column;min-width:0;}
   .topbar{padding:9px 16px;border-bottom:1px solid var(--border);background:var(--panel);
     display:flex;align-items:center;gap:18px;font-size:12px;color:var(--muted);}
   .topbar b{color:var(--accent2);font-variant-numeric:tabular-nums;}
   .spacer{flex:1;}
-  /* ---- GPU bellek şeridi ---- */
+  /* ---- GPU memory strip ---- */
   .gpustrip{display:flex;align-items:center;gap:11px;padding:7px 16px;border-bottom:1px solid var(--border);
     background:var(--panel);font-size:12px;color:var(--muted);}
   .gpustrip .glabel{color:var(--text);font-weight:600;white-space:nowrap;}
@@ -104,7 +104,7 @@
   .send:hover{background:#388bfd;}
   .send.stop{background:var(--danger);}
 
-  /* ---- Log çekmecesi ---- */
+  /* ---- Log drawer ---- */
   .logdrawer{border-top:1px solid var(--border);background:#06090d;}
   .logdrawer .lhead{padding:7px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;font-size:12px;color:var(--muted);}
   .logdrawer .lhead:hover{color:var(--text);}
@@ -114,13 +114,13 @@
   .logbody .err{color:var(--danger);}
   .logbody .ok{color:var(--accent2);}
 
-  /* ---- bilgi (ⓘ) butonu ---- */
+  /* ---- info (ⓘ) button ---- */
   .info{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;
     border-radius:50%;border:1px solid var(--border);color:var(--muted);font-size:10px;font-weight:700;
     cursor:pointer;margin-left:6px;flex:0 0 auto;font-style:normal;line-height:1;}
   .info:hover{color:var(--accent);border-color:var(--accent);}
 
-  /* ---- bilgi penceresi (modal) ---- */
+  /* ---- info window (modal) ---- */
   .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.62);display:none;z-index:50;
     align-items:center;justify-content:center;padding:24px;}
   .modal-bg.open{display:flex;}
@@ -142,7 +142,7 @@
   .modal .mbody .warnbox{border-left:3px solid var(--warn);background:rgba(227,179,65,.07);
     padding:8px 11px;border-radius:6px;margin:11px 0;color:var(--text);}
 
-  /* ---- düşünme (reasoning) bloğu ---- */
+  /* ---- reasoning block ---- */
   .think{border-left:2px solid var(--warn);background:rgba(227,179,65,.07);padding:7px 10px;
     border-radius:6px;margin-bottom:9px;}
   .think .tlabel{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--warn);
@@ -152,7 +152,7 @@
 </style>
 </head>
 <body>
-  <!-- ======================= BİLGİ PENCERESİ ======================= -->
+  <!-- ======================= INFO MODAL ======================= -->
   <div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeInfo()">
     <div class="modal">
       <div class="mhead"><h3 id="modalTitle"></h3><span class="x" onclick="closeInfo()">×</span></div>
@@ -160,31 +160,31 @@
     </div>
   </div>
 
-  <!-- ======================= AYARLAR ======================= -->
+  <!-- ======================= SETTINGS ======================= -->
   <aside class="sidebar">
-    <div class="brand"><span class="dot" id="dot"></span> Yerel LLM · Laboratuvar</div>
+    <div class="brand"><span class="dot" id="dot"></span> Local LLM · Lab</div>
 
-    <!-- ---------- MODEL YÜKLEME ---------- -->
+    <!-- ---------- MODEL LOADING ---------- -->
     <div class="sec open" id="secServer">
       <div class="head" onclick="toggleSec('secServer')">
-        <span>① Model Yükleme ⚙️ (yeniden başlatır)</span><span class="chev">▶</span>
+        <span>① Model Loading ⚙️ (restarts)</span><span class="chev">▶</span>
       </div>
       <div class="body">
         <div class="field">
-          <label>GPU katmanı (-ngl) <span class="val" id="nglVal">40</span></label>
+          <label>GPU layers (-ngl) <span class="val" id="nglVal">40</span></label>
           <input type="range" id="ngl" min="0" max="99" step="1" value="40" />
-          <div class="hint">0 = sadece CPU (yavaş). 99 = her şey GPU'ya (8 GB'a sığmazsa <b>bellek taşar → logda görürsün</b>).</div>
+          <div class="hint">0 = CPU only (slow). 99 = everything on GPU (if it doesn't fit in your VRAM <b>it spills to RAM or crashes → watch the log</b>).</div>
         </div>
         <div class="row2">
           <div class="field">
-            <label>Bağlam (-c)</label>
+            <label>Context (-c)</label>
             <input type="number" id="ctx" value="4096" step="512" min="256" />
-            <div class="hint">Hafıza uzunluğu (token).</div>
+            <div class="hint">Memory length (tokens).</div>
           </div>
           <div class="field">
             <label>Flash Attn (-fa)</label>
             <select id="fa"><option>auto</option><option>on</option><option>off</option></select>
-            <div class="hint">KV cache sıkıştırma için "on" gerekir.</div>
+            <div class="hint">Needs "on" for KV cache compression.</div>
           </div>
         </div>
         <div class="row2">
@@ -194,75 +194,75 @@
         <div class="row2">
           <div class="field">
             <label>K cache (-ctk)</label>
-            <select id="ctk"><option value="">f16 (varsayılan)</option><option>q8_0</option><option>q4_0</option><option>q4_1</option></select>
+            <select id="ctk"><option value="">f16 (default)</option><option>q8_0</option><option>q4_0</option><option>q4_1</option></select>
           </div>
           <div class="field">
             <label>V cache (-ctv)</label>
-            <select id="ctv"><option value="">f16 (varsayılan)</option><option>q8_0</option><option>q4_0</option><option>q4_1</option></select>
+            <select id="ctv"><option value="">f16 (default)</option><option>q8_0</option><option>q4_0</option><option>q4_1</option></select>
           </div>
         </div>
         <div class="field">
-          <label>RoPE frekans tabanı <span class="val" id="ropeState">varsayılan</span></label>
-          <input type="text" id="rope_base" placeholder="boş = modelin kendi değeri" />
-          <div class="hint">⚠️ Modelin "konum hissi". Değiştirirsen (örn. 10000) <b>model saçmalamaya başlar</b> — bozmak için birebir.</div>
+          <label>RoPE freq base <span class="val" id="ropeState">default</span></label>
+          <input type="text" id="rope_base" placeholder="empty = model's own value" />
+          <div class="hint">⚠️ The model's "sense of position". Change it (e.g. 10000) and <b>the model starts talking nonsense</b> — perfect for breaking it.</div>
         </div>
         <div class="row2">
-          <div class="field"><label>İş parçacığı (-t)</label><input type="number" id="threads" placeholder="oto"/></div>
-          <div class="field"><label>Batch iş parçacığı (-tb)</label><input type="number" id="threads_batch" placeholder="oto"/></div>
+          <div class="field"><label>Threads (-t)</label><input type="number" id="threads" placeholder="auto"/></div>
+          <div class="field"><label>Batch threads (-tb)</label><input type="number" id="threads_batch" placeholder="auto"/></div>
         </div>
 
         <div class="row2">
-          <div class="field"><label>RoPE freq scale</label><input type="text" id="rope_scale" placeholder="boş = varsayılan"/></div>
-          <div class="field"><label>Paralel slot (-np)</label><input type="number" id="parallel" placeholder="1"/></div>
+          <div class="field"><label>RoPE freq scale</label><input type="text" id="rope_scale" placeholder="empty = default"/></div>
+          <div class="field"><label>Parallel slots (-np)</label><input type="number" id="parallel" placeholder="1"/></div>
         </div>
         <div class="field">
-          <label>Düşünme bütçesi (-budget)</label>
-          <input type="number" id="rbudget" placeholder="boş = sınırsız" />
-          <div class="hint">Düşünmeye izin verilen token sınırı. -1 sınırsız · 0 anında bitir · N token. (Açıp/kapatmak için aşağıdaki ② Üretim → 🧠 Düşünme'yi kullan — o canlıdır.)</div>
+          <label>Thinking budget (-budget)</label>
+          <input type="number" id="rbudget" placeholder="empty = unlimited" />
+          <div class="hint">Token limit allowed for thinking. -1 unlimited · 0 end immediately · N tokens. (To turn it on/off use ② Generation → 🧠 Thinking below — that one is live.)</div>
         </div>
 
         <div class="field">
-          <label style="cursor:pointer;"><input type="checkbox" id="mmproj" checked style="width:auto;margin-right:7px;"/>Görüntü desteği (mmproj)</label>
+          <label style="cursor:pointer;"><input type="checkbox" id="mmproj" checked style="width:auto;margin-right:7px;"/>Vision support (mmproj)</label>
         </div>
         <div class="row2">
-          <div class="field"><label style="cursor:pointer;"><input type="checkbox" id="nkvo" style="width:auto;margin-right:7px;"/>KV'yi GPU'ya koyma (-nkvo)</label></div>
-          <div class="field"><label style="cursor:pointer;"><input type="checkbox" id="mlock" style="width:auto;margin-right:7px;"/>Belleğe kilitle (--mlock)</label></div>
+          <div class="field"><label style="cursor:pointer;"><input type="checkbox" id="nkvo" style="width:auto;margin-right:7px;"/>Keep KV off GPU (-nkvo)</label></div>
+          <div class="field"><label style="cursor:pointer;"><input type="checkbox" id="mlock" style="width:auto;margin-right:7px;"/>Lock in RAM (--mlock)</label></div>
         </div>
-        <div class="field"><label style="cursor:pointer;"><input type="checkbox" id="no_mmap" style="width:auto;margin-right:7px;"/>mmap kapalı (--no-mmap)</label></div>
+        <div class="field"><label style="cursor:pointer;"><input type="checkbox" id="no_mmap" style="width:auto;margin-right:7px;"/>mmap off (--no-mmap)</label></div>
 
         <div class="btnrow">
-          <button class="btn primary" id="startBtn" onclick="startServer()">▶ Başlat / Yeniden başlat</button>
-          <button class="btn ghost" onclick="stopServer()" style="flex:0 0 auto;">⏹ Durdur</button>
+          <button class="btn primary" id="startBtn" onclick="startServer()">▶ Start / Restart</button>
+          <button class="btn ghost" onclick="stopServer()" style="flex:0 0 auto;">⏹ Stop</button>
         </div>
         <div class="chips">
-          <span class="chip" onclick="serverPreset('safe')">✅ Güvenli (ngl 40)</span>
-          <span class="chip bad" onclick="serverPreset('oom')">💥 Bellek taşır (ngl 99)</span>
-          <span class="chip bad" onclick="serverPreset('cpu')">🐌 Sadece CPU</span>
-          <span class="chip bad" onclick="serverPreset('rope')">🔥 RoPE'yi boz</span>
-          <span class="chip bad" onclick="serverPreset('kv4')">🧊 KV q4 (kalite düşer)</span>
+          <span class="chip" onclick="serverPreset('safe')">✅ Safe (ngl 40)</span>
+          <span class="chip bad" onclick="serverPreset('oom')">💥 Overflow VRAM (ngl 99)</span>
+          <span class="chip bad" onclick="serverPreset('cpu')">🐌 CPU only</span>
+          <span class="chip bad" onclick="serverPreset('rope')">🔥 Break RoPE</span>
+          <span class="chip bad" onclick="serverPreset('kv4')">🧊 KV q4 (lower quality)</span>
         </div>
       </div>
     </div>
 
-    <!-- ---------- ÜRETİM ---------- -->
+    <!-- ---------- GENERATION ---------- -->
     <div class="sec open" id="secGen">
       <div class="head" onclick="toggleSec('secGen')">
-        <span>② Üretim 🎛️ (canlı, anında)</span><span class="chev">▶</span>
+        <span>② Generation 🎛️ (live, instant)</span><span class="chev">▶</span>
       </div>
       <div class="body">
         <div class="field">
-          <label>Sistem talimatı</label>
-          <textarea id="system" rows="2">Sen yardımsever, Türkçe konuşan bir asistansın.</textarea>
+          <label>System prompt</label>
+          <textarea id="system" rows="2">You are a helpful assistant.</textarea>
         </div>
         <div class="field">
-          <label>🧠 Düşünme (reasoning)</label>
-          <select id="reasoning"><option value="auto">auto (varsayılan — model düşünür)</option><option value="on">aç (her zaman düşün)</option><option value="off">KAPAT (düşünmeden cevap)</option></select>
-          <div class="hint">Canlıdır, yeniden başlatma gerekmez. "KAPAT" = model düşünmeyi atlar, doğrudan ve hızlı cevap verir.</div>
+          <label>🧠 Thinking (reasoning)</label>
+          <select id="reasoning"><option value="auto">auto (default — model thinks)</option><option value="on">on (always think)</option><option value="off">OFF (answer without thinking)</option></select>
+          <div class="hint">Live, no restart needed. "OFF" = the model skips thinking and answers directly and fast.</div>
         </div>
         <div class="field">
-          <label>Sıcaklık (temperature) <span class="val" id="tempVal">0.8</span></label>
+          <label>Temperature <span class="val" id="tempVal">0.8</span></label>
           <input type="range" id="temp" min="0" max="3" step="0.05" value="0.8"/>
-          <div class="hint">0 = robotik. 3 = tamamen kaos (saçmalar). Bozmak için yükselt!</div>
+          <div class="hint">0 = robotic. 3 = total chaos (gibberish). Raise it to break things!</div>
         </div>
         <div class="row2">
           <div class="field"><label>Top-K <span class="val" id="topkVal">40</span></label><input type="range" id="topk" min="0" max="200" step="1" value="40"/></div>
@@ -273,107 +273,107 @@
           <div class="field"><label>Typical-P <span class="val" id="typVal">1.00</span></label><input type="range" id="typ" min="0" max="1" step="0.01" value="1"/></div>
         </div>
         <div class="row2">
-          <div class="field"><label>Tekrar cezası <span class="val" id="repVal">1.10</span></label><input type="range" id="rep" min="1" max="2" step="0.01" value="1.1"/></div>
-          <div class="field"><label>Ceza penceresi <span class="val" id="rlnVal">64</span></label><input type="range" id="rln" min="0" max="512" step="8" value="64"/></div>
+          <div class="field"><label>Repeat penalty <span class="val" id="repVal">1.10</span></label><input type="range" id="rep" min="1" max="2" step="0.01" value="1.1"/></div>
+          <div class="field"><label>Penalty window <span class="val" id="rlnVal">64</span></label><input type="range" id="rln" min="0" max="512" step="8" value="64"/></div>
         </div>
         <div class="row2">
-          <div class="field"><label>Varlık cezası <span class="val" id="presVal">0.0</span></label><input type="range" id="pres" min="-2" max="2" step="0.1" value="0"/></div>
-          <div class="field"><label>Sıklık cezası <span class="val" id="freqVal">0.0</span></label><input type="range" id="freq" min="-2" max="2" step="0.1" value="0"/></div>
+          <div class="field"><label>Presence penalty <span class="val" id="presVal">0.0</span></label><input type="range" id="pres" min="-2" max="2" step="0.1" value="0"/></div>
+          <div class="field"><label>Frequency penalty <span class="val" id="freqVal">0.0</span></label><input type="range" id="freq" min="-2" max="2" step="0.1" value="0"/></div>
         </div>
         <div class="field">
-          <label>Mirostat (otomatik kaos kontrolü)</label>
-          <select id="miro"><option value="0">Kapalı</option><option value="1">Mirostat v1</option><option value="2">Mirostat v2</option></select>
-          <div class="hint">Açıkken Top-K/Top-P yok sayılır; "şaşkınlığı" hedefe sabitler.</div>
+          <label>Mirostat (auto chaos control)</label>
+          <select id="miro"><option value="0">Off</option><option value="1">Mirostat v1</option><option value="2">Mirostat v2</option></select>
+          <div class="hint">When on, Top-K/Top-P are ignored; it pins "surprise" to a target.</div>
         </div>
         <div class="row2">
           <div class="field"><label>Mirostat τ (tau)</label><input type="number" id="mtau" value="5.0" step="0.5"/></div>
           <div class="field"><label>Mirostat η (eta)</label><input type="number" id="meta" value="0.1" step="0.01"/></div>
         </div>
         <div class="row2">
-          <div class="field"><label>Maks. uzunluk <span class="val" id="maxVal">2048</span></label><input type="range" id="max" min="16" max="4096" step="16" value="2048"/></div>
-          <div class="field"><label>Seed (-1=rastgele)</label><input type="number" id="seed" value="-1"/></div>
+          <div class="field"><label>Max length <span class="val" id="maxVal">2048</span></label><input type="range" id="max" min="16" max="4096" step="16" value="2048"/></div>
+          <div class="field"><label>Seed (-1=random)</label><input type="number" id="seed" value="-1"/></div>
         </div>
 
-        <div class="field"><label>Durdurma dizileri (stop)</label><input type="text" id="stop" placeholder="virgülle ayır: ###, Kullanıcı:"/>
-          <div class="hint">Bu metinlerden biri üretilince yanıt anında kesilir.</div></div>
+        <div class="field"><label>Stop sequences (stop)</label><input type="text" id="stop" placeholder="comma-separated: ###, User:"/>
+          <div class="hint">When any of these is produced, the reply is cut immediately.</div></div>
         <div class="row2">
-          <div class="field"><label>Bağlamı koru (n_keep)</label><input type="number" id="nkeep" placeholder="0"/></div>
-          <div class="field"><label>top-n-sigma</label><input type="number" id="tns" placeholder="-1 = kapalı" step="0.1"/></div>
+          <div class="field"><label>Keep context (n_keep)</label><input type="number" id="nkeep" placeholder="0"/></div>
+          <div class="field"><label>top-n-sigma</label><input type="number" id="tns" placeholder="-1 = off" step="0.1"/></div>
         </div>
         <div class="row2">
-          <div class="field"><label>Dinamik sıcaklık aralığı</label><input type="number" id="dtr" value="0" step="0.1"/></div>
-          <div class="field"><label>Dinamik sıc. üssü</label><input type="number" id="dte" value="1" step="0.1"/></div>
-        </div>
-
-        <div class="head" style="padding:8px 0 2px;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;">DRY (akıllı tekrar engeli)</div>
-        <div class="row2">
-          <div class="field"><label>DRY çarpan</label><input type="number" id="drym" value="0" step="0.1"/></div>
-          <div class="field"><label>DRY taban</label><input type="number" id="dryb" value="1.75" step="0.05"/></div>
-        </div>
-        <div class="row2">
-          <div class="field"><label>DRY izin verilen uzunluk</label><input type="number" id="dryal" value="2"/></div>
-          <div class="field"><label>DRY ceza penceresi</label><input type="number" id="drypn" value="-1"/></div>
+          <div class="field"><label>Dynamic temp range</label><input type="number" id="dtr" value="0" step="0.1"/></div>
+          <div class="field"><label>Dynamic temp exponent</label><input type="number" id="dte" value="1" step="0.1"/></div>
         </div>
 
-        <div class="head" style="padding:8px 0 2px;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;">XTC (klişe kırıcı)</div>
+        <div class="head" style="padding:8px 0 2px;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;">DRY (smart repetition blocker)</div>
         <div class="row2">
-          <div class="field"><label>XTC olasılık</label><input type="number" id="xtcp" value="0" step="0.05"/></div>
-          <div class="field"><label>XTC eşik</label><input type="number" id="xtct" value="0.1" step="0.01"/></div>
+          <div class="field"><label>DRY multiplier</label><input type="number" id="drym" value="0" step="0.1"/></div>
+          <div class="field"><label>DRY base</label><input type="number" id="dryb" value="1.75" step="0.05"/></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>DRY allowed length</label><input type="number" id="dryal" value="2"/></div>
+          <div class="field"><label>DRY penalty window</label><input type="number" id="drypn" value="-1"/></div>
+        </div>
+
+        <div class="head" style="padding:8px 0 2px;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;">XTC (cliché breaker)</div>
+        <div class="row2">
+          <div class="field"><label>XTC probability</label><input type="number" id="xtcp" value="0" step="0.05"/></div>
+          <div class="field"><label>XTC threshold</label><input type="number" id="xtct" value="0.1" step="0.01"/></div>
         </div>
 
         <div class="chips">
-          <span class="chip" onclick="genPreset('precise')">🎯 Kesin</span>
-          <span class="chip" onclick="genPreset('balanced')">⚖️ Dengeli</span>
-          <span class="chip" onclick="genPreset('creative')">🎨 Yaratıcı</span>
-          <span class="chip bad" onclick="genPreset('chaos')">🌀 Kaos (temp 3)</span>
-          <span class="chip bad" onclick="genPreset('stuck')">🔁 Takık (rep 1.0, k 1)</span>
+          <span class="chip" onclick="genPreset('precise')">🎯 Precise</span>
+          <span class="chip" onclick="genPreset('balanced')">⚖️ Balanced</span>
+          <span class="chip" onclick="genPreset('creative')">🎨 Creative</span>
+          <span class="chip bad" onclick="genPreset('chaos')">🌀 Chaos (temp 3)</span>
+          <span class="chip bad" onclick="genPreset('stuck')">🔁 Stuck (rep 1.0, k 1)</span>
         </div>
       </div>
     </div>
   </aside>
 
-  <!-- ======================= SOHBET ======================= -->
+  <!-- ======================= CHAT ======================= -->
   <main class="main">
     <div class="topbar">
       <span><span class="dot" id="dot2" style="display:inline-block;vertical-align:middle"></span> <b id="srvState">—</b></span>
-      <span>Hız: <b id="speed">—</b> tok/sn</span>
-      <span>Son: <b id="lastTok">—</b> tok / <b id="lastSec">—</b> sn</span>
+      <span>Speed: <b id="speed">—</b> tok/s</span>
+      <span>Last: <b id="lastTok">—</b> tok / <b id="lastSec">—</b> s</span>
       <span class="spacer"></span>
-      <button class="btn ghost" style="height:30px;padding:0 12px" onclick="clearChat()">🧹 Temizle</button>
+      <button class="btn ghost" style="height:30px;padding:0 12px" onclick="clearChat()">🧹 Clear</button>
     </div>
 
-    <!-- ---- canlı GPU bellek göstergesi ---- -->
+    <!-- ---- live GPU memory meter ---- -->
     <div class="gpustrip">
       <span class="glabel">🎮 GPU VRAM</span>
-      <div class="gtrack" title="Modelin GPU belleği doluluğu">
+      <div class="gtrack" title="GPU memory usage">
         <div class="gfill" id="gfill"></div>
       </div>
-      <span class="gtext" id="gtext">ölçülüyor…</span>
+      <span class="gtext" id="gtext">measuring…</span>
       <span class="gshared" id="gshared"></span>
       <span class="spacer"></span>
-      <span class="glegend"><i style="background:var(--accent2)"></i>VRAM&nbsp;&nbsp;<i style="background:var(--warn)"></i>RAM (paylaşılan)</span>
+      <span class="glegend"><i style="background:var(--accent2)"></i>VRAM&nbsp;&nbsp;<i style="background:var(--warn)"></i>RAM (shared)</span>
       <canvas id="gspark" width="170" height="30"></canvas>
     </div>
 
     <div class="chat" id="chat">
       <div class="empty" id="empty">
-        <h3>🧪 Laboratuvara hoş geldin</h3>
-        <p>Önce <b>① Model Yükleme → Başlat</b> de (model GPU'ya yüklenir, ~10-20 sn).<br>
-        Sonra ayarlarla oyna. <b>Bozmak için</b> kırmızı çipleri dene: 🔥 RoPE'yi boz, 🌀 Kaos, 💥 Bellek taşır.</p>
+        <h3>🧪 Welcome to the lab</h3>
+        <p>First click <b>① Model Loading → Start</b> (the model loads onto the GPU, ~10-20 s).<br>
+        Then play with the settings. <b>To break things</b> try the red chips: 🔥 Break RoPE, 🌀 Chaos, 💥 Overflow VRAM.</p>
       </div>
     </div>
 
     <div class="inputbar">
       <div class="inputrow">
-        <textarea id="input" rows="1" placeholder="Mesaj yaz... (Enter = gönder)"></textarea>
-        <button class="send" id="sendBtn" onclick="onSend()">Gönder</button>
+        <textarea id="input" rows="1" placeholder="Type a message... (Enter = send)"></textarea>
+        <button class="send" id="sendBtn" onclick="onSend()">Send</button>
       </div>
     </div>
 
-    <!-- ---- canlı log ---- -->
+    <!-- ---- live log ---- -->
     <div class="logdrawer" id="logDrawer">
       <div class="lhead" onclick="document.getElementById('logDrawer').classList.toggle('open')">
-        📜 llama-server canlı log (bozulmaları burada gör) — aç/kapat
+        📜 llama-server live log (watch breakages here) — toggle
         <span class="spacer"></span>
         <span id="logHint" style="color:var(--muted)"></span>
       </div>
@@ -385,262 +385,261 @@
 const $=id=>document.getElementById(id);
 let messages=[], streaming=false, abortCtrl=null, lastLogSeq=-1;
 
-/* ---- kaydırıcı etiketleri ---- */
+/* ---- slider labels ---- */
 const labels={temp:'tempVal',topk:'topkVal',topp:'toppVal',minp:'minpVal',typ:'typVal',
   rep:'repVal',rln:'rlnVal',pres:'presVal',freq:'freqVal',max:'maxVal',ngl:'nglVal'};
 for(const[s,l]of Object.entries(labels)){
   const e=$(s); if(e) e.addEventListener('input',()=>$(l).textContent=e.value);
 }
 $('rope_base').addEventListener('input',()=>{
-  $('ropeState').textContent=$('rope_base').value.trim()?('⚠️ '+$('rope_base').value):'varsayılan';
+  $('ropeState').textContent=$('rope_base').value.trim()?('⚠️ '+$('rope_base').value):'default';
 });
 
 function toggleSec(id){$(id).classList.toggle('open');}
 
-/* ===================== AYAR AÇIKLAMALARI (bilgi penceresi) ===================== */
+/* ===================== SETTING DESCRIPTIONS (info modal) ===================== */
 const HELP={
-  /* ---------- ① MODEL YÜKLEME (değişince sunucu yeniden başlar) ---------- */
-  ngl:{t:'GPU katmanı  (-ngl, n-gpu-layers)',html:`
-    <span class="tag">① Model Yükleme · yeniden başlatır</span>
-    <p>Modelin kaç <b>katmanının (layer)</b> ekran kartına (GPU) yükleneceğini söyler. Örn. 12B sınıfı bir modelin tipik olarak ~40-48 katmanı olur.</p>
-    <p><b>Neden önemli?</b> GPU, CPU'dan kat kat hızlıdır. Ne kadar çok katman GPU'da olursa üretim o kadar hızlanır (tok/sn artar).</p>
-    <p><code>0</code> = hiçbir katman GPU'da, <b>her şey CPU'da</b> → çalışır ama çok yavaştır.<br>
-    <code>40</code> = güvenli orta yol (8 GB kart için).<br>
-    <code>99</code> = "ne varsa GPU'ya koy". Model + KV cache 8 GB'a sığmazsa <b>bellek taşar (out of memory)</b> ve sunucu çöker — bunu alttaki canlı logda görürsün.</p>
-    <div class="warnbox">VRAM'in (kart belleği) yetmezse ngl'yi düşür. Hız mı yetmiyor, bellek mi taşıyor: ikisinin dengesini bu kaydırıcıyla ararsın.</div>`},
+  /* ---------- ① MODEL LOADING (changing these restarts the server) ---------- */
+  ngl:{t:'GPU layers  (-ngl, n-gpu-layers)',html:`
+    <span class="tag">① Model Loading · restarts</span>
+    <p>Tells how many of the model's <b>layers</b> are loaded onto the graphics card (GPU). E.g. a 12B-class model typically has ~40-48 layers.</p>
+    <p><b>Why it matters?</b> The GPU is far faster than the CPU. The more layers on the GPU, the faster generation gets (tok/s rises).</p>
+    <p><code>0</code> = no layers on GPU, <b>everything on CPU</b> → works but very slow.<br>
+    <code>40</code> = a safe middle ground (for an 8 GB card).<br>
+    <code>99</code> = "put everything on the GPU". If the model + KV cache doesn't fit in VRAM it <b>overflows</b> — depending on the driver it either spills to RAM (slower) or crashes (out of memory). Watch the live log below.</p>
+    <div class="warnbox">If your VRAM (card memory) isn't enough, lower ngl. Use this slider to balance speed vs. memory.</div>`},
 
-  ctx:{t:'Bağlam uzunluğu  (-c, context size)',html:`
-    <span class="tag">① Model Yükleme · yeniden başlatır</span>
-    <p>Modelin aynı anda "akılda tutabileceği" toplam <b>token</b> sayısıdır (kabaca: senin yazdıkların + sistem talimatı + modelin ürettiği yanıt, hepsi birlikte).</p>
-    <p>1 token ≈ Türkçede yarım–bir kelime. <code>4096</code> ≈ birkaç sayfa metin demektir.</p>
-    <p><b>Büyütürsen:</b> daha uzun sohbet/belge hatırlar — ama her token GPU belleği yer, çok büyütürsen <b>bellek taşar</b>.</p>
-    <p>Sohbet bu sınırı aşınca en eski mesajlar pencereden düşer (model onları "unutur").</p>`},
+  ctx:{t:'Context length  (-c, context size)',html:`
+    <span class="tag">① Model Loading · restarts</span>
+    <p>The total number of <b>tokens</b> the model can "keep in mind" at once (roughly: what you type + the system prompt + the model's reply, all together).</p>
+    <p>1 token ≈ about ¾ of an English word. <code>4096</code> ≈ a few pages of text.</p>
+    <p><b>Larger:</b> remembers longer chats/documents — but every token costs GPU memory; too large and it <b>overflows</b>.</p>
+    <p>When the chat exceeds this limit, the oldest messages drop out of the window (the model "forgets" them).</p>`},
 
   fa:{t:'Flash Attention  (-fa)',html:`
-    <span class="tag">① Model Yükleme · yeniden başlatır</span>
-    <p>Dikkat (attention) hesabını <b>daha az bellekle ve daha hızlı</b> yapan optimize edilmiş bir çekirdektir. Sonucu değiştirmez, sadece verimi artırır.</p>
-    <p><code>auto</code> = donanım destekliyorsa kendiliğinden açar (önerilen).<br>
-    <code>on</code> = zorla aç. <b>KV cache sıkıştırması (aşağıdaki -ctk/-ctv q8/q4) çalışsın istiyorsan bunu açman gerekir.</b><br>
-    <code>off</code> = kapat (eski/uyumsuz donanım için).</p>`},
+    <span class="tag">① Model Loading · restarts</span>
+    <p>An optimized kernel that computes attention <b>with less memory and faster</b>. It doesn't change the result, only efficiency.</p>
+    <p><code>auto</code> = enables itself if the hardware supports it (recommended).<br>
+    <code>on</code> = force on. <b>Required if you want KV cache compression (-ctk/-ctv q8/q4 below) to work.</b><br>
+    <code>off</code> = disable (for old/incompatible hardware).</p>`},
 
   batch:{t:'Batch  (-b, logical batch size)',html:`
-    <span class="tag">① Model Yükleme · yeniden başlatır</span>
-    <p>Senin gönderdiğin metnin (prompt) <b>kaç token'ının tek seferde işleneceği</b> üst sınırıdır. Esas olarak ilk yanıt gecikmesini (prompt'u "okuma" hızını) etkiler.</p>
-    <p>Büyük değer = uzun metinler daha hızlı işlenir, ama biraz daha çok bellek. <code>2048</code> makul bir varsayılandır. Üretim hızını (cevabı yazma hızını) doğrudan etkilemez.</p>`},
+    <span class="tag">① Model Loading · restarts</span>
+    <p>The max number of <b>prompt tokens processed at once</b>. Mainly affects time-to-first-token (how fast the prompt is "read").</p>
+    <p>Larger = long prompts processed faster, but a bit more memory. <code>2048</code> is a reasonable default. Does not directly affect generation speed (how fast the reply is written).</p>`},
 
   ubatch:{t:'U-batch  (-ub, physical batch size)',html:`
-    <span class="tag">① Model Yükleme · yeniden başlatır</span>
-    <p>Batch'in <b>fiziksel</b> parçası: GPU'ya gerçekte tek hamlede gönderilen token sayısı. Batch'in alt-bölümüdür (ub ≤ b).</p>
-    <p>Genelde dokunmana gerek yok. Bellek darsa küçült, çok uzun prompt'larda ince ayar için büyütülebilir. Varsayılan <code>512</code> çoğu durumda iyidir.</p>`},
+    <span class="tag">① Model Loading · restarts</span>
+    <p>The <b>physical</b> part of the batch: the number of tokens actually sent to the GPU in one go. A sub-division of the batch (ub ≤ b).</p>
+    <p>Usually no need to touch it. Lower it if memory is tight; raise it to tune very long prompts. The default <code>512</code> is fine in most cases.</p>`},
 
-  ctk:{t:'K cache tipi  (-ctk)',html:`
-    <span class="tag">① Model Yükleme · yeniden başlatır</span>
-    <p>KV cache, modelin sohbet boyunca biriktirdiği "hafıza"dır ve epey VRAM yer. Buradan o hafızanın <b>K (key) kısmının sıkıştırma kalitesini</b> seçersin.</p>
-    <p><code>f16</code> = tam kalite (varsayılan).<br>
-    <code>q8_0</code> = hafif sıkıştırma, kaliteyi neredeyse hiç bozmadan bellek kazandırır.<br>
-    <code>q4_0 / q4_1</code> = agresif sıkıştırma; <b>çok bellek kazandırır ama yanıt kalitesi düşebilir.</b></p>
-    <div class="warnbox">Sıkıştırmanın çalışması için genelde <b>Flash Attention "on"</b> olmalıdır.</div>`},
+  ctk:{t:'K cache type  (-ctk)',html:`
+    <span class="tag">① Model Loading · restarts</span>
+    <p>The KV cache is the "memory" the model accumulates over the chat and eats quite a bit of VRAM. Here you pick the compression quality of its <b>K (key) part</b>.</p>
+    <p><code>f16</code> = full quality (default).<br>
+    <code>q8_0</code> = light compression, saves memory with almost no quality loss.<br>
+    <code>q4_0 / q4_1</code> = aggressive compression; <b>saves a lot of memory but reply quality may drop.</b></p>
+    <div class="warnbox">For compression to work, <b>Flash Attention "on"</b> is usually required.</div>`},
 
-  ctv:{t:'V cache tipi  (-ctv)',html:`
-    <span class="tag">① Model Yükleme · yeniden başlatır</span>
-    <p>Yukarıdaki K cache ile aynı mantık, ama hafızanın <b>V (value) kısmı</b> için. Uzun bağlamda (büyük -c) en çok belleği bu ikisi yer.</p>
-    <p><code>f16</code> tam kalite; <code>q8_0</code> güvenli tasarruf; <code>q4_*</code> en çok tasarruf ama kalite riski. Yine <b>Flash Attention "on"</b> ister.</p>`},
+  ctv:{t:'V cache type  (-ctv)',html:`
+    <span class="tag">① Model Loading · restarts</span>
+    <p>Same idea as the K cache above, but for the <b>V (value) part</b> of the memory. With long context (large -c) these two eat the most memory.</p>
+    <p><code>f16</code> full quality; <code>q8_0</code> safe saving; <code>q4_*</code> max saving but quality risk. Also wants <b>Flash Attention "on"</b>.</p>`},
 
-  rope_base:{t:'RoPE frekans tabanı  (--rope-freq-base)',html:`
-    <span class="tag">① Model Yükleme · yeniden başlatır</span>
-    <p>RoPE, modelin kelimelerin <b>sırasını / konumunu</b> nasıl algıladığını belirleyen matematiksel "konum kodlaması"dır. Bu sayı onun temel frekansıdır.</p>
-    <p>Boş bırak = model kendi eğitimdeki doğru değerini kullanır. <b>Doğrusu budur, normalde elleme.</b></p>
-    <div class="warnbox">Burayı rastgele değiştirirsen (örn. modelin gerçeğiyle uyuşmayan bir sayı) modelin "konum hissi" bozulur ve <b>anlamsız/saçma metin</b> üretmeye başlar. Bu panelde "🔥 RoPE'yi boz" çipi tam da bunu gösterir.</div>`},
+  rope_base:{t:'RoPE frequency base  (--rope-freq-base)',html:`
+    <span class="tag">① Model Loading · restarts</span>
+    <p>RoPE is the mathematical "position encoding" that determines how the model perceives the <b>order/position</b> of words. This number is its base frequency.</p>
+    <p>Leave empty = the model uses its correct trained value. <b>That's the right one — normally don't touch it.</b></p>
+    <div class="warnbox">Change it randomly (e.g. a number that doesn't match the model's real one) and the model's "sense of position" breaks, producing <b>nonsense</b>. The "🔥 Break RoPE" chip demonstrates exactly this.</div>`},
 
-  threads:{t:'İş parçacığı  (-t, threads)',html:`
-    <span class="tag">① Model Yükleme · yeniden başlatır</span>
-    <p>CPU'da yapılan işin kaç <b>iş parçacığıyla (thread)</b> paralel yürütüleceği. Çoğunlukla CPU'da kalan katmanları ve prompt işlemeyi etkiler.</p>
-    <p>Boş = otomatik (işlemci çekirdek sayına göre). Her şey GPU'daysa (-ngl yüksek) etkisi azdır. Genelde otomatik en iyisidir.</p>`},
+  threads:{t:'Threads  (-t, threads)',html:`
+    <span class="tag">① Model Loading · restarts</span>
+    <p>How many <b>threads</b> run the CPU-side work in parallel. Mainly affects layers left on the CPU and prompt processing.</p>
+    <p>Empty = automatic (based on your CPU core count). If everything is on the GPU (high -ngl) the effect is small. Auto is usually best.</p>`},
 
-  mmproj:{t:'Görüntü desteği  (mmproj)',html:`
-    <span class="tag">① Model Yükleme · yeniden başlatır</span>
-    <p>Modelin <b>resim görebilmesini</b> sağlayan ek "görsel projektör" dosyasını (mmproj) yükler. Çok-kipli (multimodal) modeller bu sayede resim anlayabilir. (Yalnızca models/ içinde bir <code>mmproj</code> dosyası varsa işe yarar.)</p>
-    <p><b>İşaretli:</b> resimli istekler çalışır, ama bu dosya da biraz VRAM yer.<br>
-    <b>İşaretsiz:</b> sadece metin; biraz bellek tasarrufu sağlar.</p>`},
+  mmproj:{t:'Vision support  (mmproj)',html:`
+    <span class="tag">① Model Loading · restarts</span>
+    <p>Loads the extra "multimodal projector" file (mmproj) that lets the model <b>see images</b>. Multimodal models can understand pictures this way. (Only works if there's an <code>mmproj</code> file in models/.)</p>
+    <p><b>Checked:</b> image requests work, but this file also uses some VRAM.<br>
+    <b>Unchecked:</b> text only; saves a little memory.</p>`},
 
-  /* ---------- ② ÜRETİM (canlı, yeniden başlatma gerekmez) ---------- */
-  system:{t:'Sistem talimatı  (system prompt)',html:`
-    <span class="tag">② Üretim · canlı</span>
-    <p>Modele her sohbetin <b>en başında, gizliden</b> verilen yönerge. Kişiliğini, dilini, kurallarını ve rolünü belirler.</p>
-    <p>Örn. "Sen kısa ve net cevap veren bir Türkçe asistansın" yazarsan üslubu ona göre şekillenir. Bunu istediğin an değiştirebilirsin; bir sonraki mesajdan itibaren geçerli olur.</p>`},
+  /* ---------- ② GENERATION (live, no restart needed) ---------- */
+  system:{t:'System prompt',html:`
+    <span class="tag">② Generation · live</span>
+    <p>The instruction given to the model <b>silently at the very start</b> of every chat. Defines its personality, language, rules and role.</p>
+    <p>E.g. write "You are a concise assistant that replies in English" and its tone follows. You can change it anytime; it takes effect from the next message.</p>`},
 
-  temp:{t:'Sıcaklık  (temperature)',html:`
-    <span class="tag">② Üretim · canlı</span>
-    <p>Modelin ne kadar <b>rastgele / yaratıcı</b> olacağını ayarlar. Her adımda olası kelimelerin olasılık dağılımını "yayar" ya da "sivriltir".</p>
-    <p><code>0'a yakın</code> = hep en olası kelime → tutarlı, tekrara yakın, "robotik".<br>
-    <code>0.7–1.0</code> = doğal sohbet dengesi.<br>
-    <code>1.5+</code> = çok yaratıcı ama tutarsızlaşır.<br>
-    <code>3</code> = neredeyse tamamen rastgele → <b>saçmalar</b> ("🌀 Kaos" çipi).</p>`},
+  temp:{t:'Temperature',html:`
+    <span class="tag">② Generation · live</span>
+    <p>Sets how <b>random / creative</b> the model is. At each step it "spreads" or "sharpens" the probability distribution of likely words.</p>
+    <p><code>near 0</code> = always the most likely word → consistent, repetitive, "robotic".<br>
+    <code>0.7–1.0</code> = natural chat balance.<br>
+    <code>1.5+</code> = very creative but inconsistent.<br>
+    <code>3</code> = almost fully random → <b>gibberish</b> ("🌀 Chaos" chip).</p>`},
 
   topk:{t:'Top-K',html:`
-    <span class="tag">② Üretim · canlı</span>
-    <p>Her adımda modele "sadece en olası <b>K adet</b> kelime arasından seç" der; gerisini eler.</p>
-    <p><code>40</code> = makul. Küçük değer (örn. <code>1</code>) = hep en olası kelime → çok kısıtlı, takılabilir. Büyük değer = daha çok seçenek, daha çeşitli ama riskli. <code>0</code> = sınır yok.</p>`},
+    <span class="tag">② Generation · live</span>
+    <p>Tells the model "only pick from the <b>K most likely</b> words" each step; the rest are dropped.</p>
+    <p><code>40</code> = reasonable. Small value (e.g. <code>1</code>) = always the top word → very restrictive, can get stuck. Larger = more options, more variety but riskier. <code>0</code> = no limit.</p>`},
 
   topp:{t:'Top-P  (nucleus sampling)',html:`
-    <span class="tag">② Üretim · canlı</span>
-    <p>"En olası kelimeleri, olasılıkları toplamı <b>%P</b> olana kadar topla, seçimi bunların içinden yap." Top-K'nın daha akıllı, esnek hâlidir.</p>
-    <p><code>0.95</code> = olasılığın %95'ini kapsayan çekirdek; nadir/saçma kelimeleri eler ama çeşitliliği korur. Düşürürsen daha güvenli/sıkı, 1.0 = filtre yok.</p>`},
+    <span class="tag">② Generation · live</span>
+    <p>"Gather the most likely words until their probabilities sum to <b>P</b>, then choose among those." A smarter, more flexible version of Top-K.</p>
+    <p><code>0.95</code> = a nucleus covering 95% of the probability; drops rare/nonsense words but keeps variety. Lower = safer/tighter, 1.0 = no filter.</p>`},
 
   minp:{t:'Min-P',html:`
-    <span class="tag">② Üretim · canlı</span>
-    <p>Bir kelimenin seçilebilmesi için olasılığının, en olası kelimenin olasılığının <b>en az %P kadarı</b> olmasını şart koşar. Çok düşük ihtimalli "çöp" kelimeleri eler.</p>
-    <p><code>0.05</code> tipik. Yükseltmek = daha temiz/güvenli; 0 = kapalı. Yüksek sıcaklıkta kaliteyi korumak için kullanışlıdır.</p>`},
+    <span class="tag">② Generation · live</span>
+    <p>Requires a word's probability to be at least <b>P of the top word's probability</b> to be eligible. Drops very low-probability "junk" words.</p>
+    <p><code>0.05</code> typical. Raising = cleaner/safer; 0 = off. Useful to keep quality at high temperature.</p>`},
 
   typ:{t:'Typical-P  (typical sampling)',html:`
-    <span class="tag">② Üretim · canlı</span>
-    <p>Hem aşırı beklenen (klişe) hem aşırı şaşırtıcı kelimeler yerine "bilgi miktarı <b>tipik</b>" olanları tercih eden alternatif bir filtre.</p>
-    <p><code>1.00</code> = kapalı (çoğu kişi kapalı bırakır). 1'in altına çekersen devreye girer; metni daha "doğal/akıcı" yapmayı amaçlar.</p>`},
+    <span class="tag">② Generation · live</span>
+    <p>An alternative filter that prefers words whose <b>information content is "typical"</b> instead of overly expected (clichéd) or overly surprising ones.</p>
+    <p><code>1.00</code> = off (most people leave it off). Pull it below 1 to engage it; aims to make text more "natural/fluent".</p>`},
 
-  rep:{t:'Tekrar cezası  (repeat_penalty)',html:`
-    <span class="tag">② Üretim · canlı</span>
-    <p>Yakın geçmişte <b>zaten kullanılmış</b> kelimelerin tekrar seçilme olasılığını düşürür. Modelin aynı şeyi döngüde tekrarlamasını engeller.</p>
-    <p><code>1.0</code> = ceza yok (model takılıp "...aynı aynı aynı" diyebilir — "🔁 Takık" çipi).<br>
-    <code>1.1–1.2</code> = sağlıklı aralık.<br>
-    Çok yüksek = model normal/gerekli kelimelerden de kaçar, dili bozulur.</p>`},
+  rep:{t:'Repeat penalty  (repeat_penalty)',html:`
+    <span class="tag">② Generation · live</span>
+    <p>Lowers the probability of re-selecting words <b>already used</b> recently. Stops the model from looping the same thing.</p>
+    <p><code>1.0</code> = no penalty (model can get stuck "...same same same" — "🔁 Stuck" chip).<br>
+    <code>1.1–1.2</code> = healthy range.<br>
+    Too high = the model avoids even normal/necessary words, breaking the language.</p>`},
 
-  rln:{t:'Ceza penceresi  (repeat_last_n)',html:`
-    <span class="tag">② Üretim · canlı</span>
-    <p>Tekrar cezasının <b>kaç token geriye</b> bakacağını belirler. Yani "ne kadar yakın geçmişteki tekrarları" cezalandıracağı.</p>
-    <p><code>64</code> = son 64 token. <code>0</code> = ceza penceresi yok (tekrar cezası fiilen kapanır). Büyütmek geniş aralıkta tekrarı azaltır.</p>`},
+  rln:{t:'Penalty window  (repeat_last_n)',html:`
+    <span class="tag">② Generation · live</span>
+    <p>How <b>many tokens back</b> the repeat penalty looks. I.e. how recent the repeats it penalizes are.</p>
+    <p><code>64</code> = last 64 tokens. <code>0</code> = no window (repeat penalty effectively off). Larger reduces repetition over a wider range.</p>`},
 
-  pres:{t:'Varlık cezası  (presence_penalty)',html:`
-    <span class="tag">② Üretim · canlı</span>
-    <p>Bir kelime metinde <b>bir kez bile geçtiyse</b> (kaç kez değil, geçti mi geçmedi mi) ona sabit bir ceza verir. Modeli <b>yeni konulara/kelimelere</b> yönlendirir.</p>
-    <p><code>0</code> = etkisiz. Pozitif (örn. 0.3) = çeşitliliği artırır. Negatif = aynı kelimelere daha çok döner.</p>`},
+  pres:{t:'Presence penalty  (presence_penalty)',html:`
+    <span class="tag">② Generation · live</span>
+    <p>Gives a fixed penalty to a word if it has appeared <b>even once</b> (not how many times, just whether it appeared). Pushes the model toward <b>new topics/words</b>.</p>
+    <p><code>0</code> = no effect. Positive (e.g. 0.3) = more variety. Negative = returns to the same words more.</p>`},
 
-  freq:{t:'Sıklık cezası  (frequency_penalty)',html:`
-    <span class="tag">② Üretim · canlı</span>
-    <p>Varlık cezasına benzer, ama ceza kelimenin <b>kaç kez tekrarlandığıyla orantılı</b> büyür. Çok sık geçen kelimeyi gittikçe daha çok bastırır.</p>
-    <p><code>0</code> = etkisiz. Pozitif = sık kelimeleri azaltır (kelime dağarcığını açar). Negatif = tekrarı teşvik eder.</p>`},
+  freq:{t:'Frequency penalty  (frequency_penalty)',html:`
+    <span class="tag">② Generation · live</span>
+    <p>Similar to presence penalty, but the penalty grows <b>proportional to how many times</b> the word repeats. Suppresses frequent words more and more.</p>
+    <p><code>0</code> = no effect. Positive = reduces frequent words (opens up vocabulary). Negative = encourages repetition.</p>`},
 
   miro:{t:'Mirostat',html:`
-    <span class="tag">② Üretim · canlı</span>
-    <p>Metnin "<b>şaşırtıcılığını</b>" (perplexity) bir hedefte sabit tutmaya çalışan otomatik denetim. Üretim boyunca rastgeleliği kendisi ayarlar.</p>
-    <p><code>Kapalı</code> = klasik Top-K/Top-P/temperature düzeni.<br>
-    <code>v1 / v2</code> = açık. <b>Açıkken Top-K ve Top-P yok sayılır</b>; model çıktının tutarlılığını kendi dengeler. v2 daha yenidir.</p>`},
+    <span class="tag">② Generation · live</span>
+    <p>An automatic control that tries to hold the text's <b>"surprise" (perplexity)</b> at a target. It adjusts randomness by itself during generation.</p>
+    <p><code>Off</code> = classic Top-K/Top-P/temperature setup.<br>
+    <code>v1 / v2</code> = on. <b>When on, Top-K and Top-P are ignored</b>; the model balances output consistency itself. v2 is newer.</p>`},
 
-  max:{t:'Maksimum uzunluk  (max_tokens)',html:`
-    <span class="tag">② Üretim · canlı</span>
-    <p>Modelin tek bir yanıtta üretebileceği <b>en fazla token</b> sayısı. Yanıt buraya gelince zorla kesilir (logda <code>finish_reason: length</code>).</p>
-    <div class="warnbox"><b>"Düşünen" modellerde çok önemli:</b> model önce sesli sesli <b>"düşünür" (reasoning)</b>, sonra asıl cevabı yazar. Düşünme de token harcar. Bu değer çok düşükse (örn. 512) model henüz düşünme aşamasındayken token biter ve <b>asıl cevaba sıra gelmez → yanıt boş görünür.</b> Düşünme uzun sürebildiği için bunu bol tut (1500+).</div>
-    <p>Düşünme metnini sohbette sarı "🧠 Düşünme" kutusunda görebilir, başlığına tıklayıp gizleyebilirsin.</p>`},
+  max:{t:'Max length  (max_tokens)',html:`
+    <span class="tag">② Generation · live</span>
+    <p>The <b>maximum tokens</b> the model can produce in one reply. The reply is force-cut when it reaches this (<code>finish_reason: length</code> in the log).</p>
+    <div class="warnbox"><b>Very important for "thinking" models:</b> the model first <b>"thinks" (reasoning)</b> out loud, then writes the actual answer. Thinking also costs tokens. If this is too low (e.g. 512) the tokens run out while still thinking and <b>the actual answer never starts → the reply looks empty.</b> Since thinking can be long, keep this generous (1500+).</div>
+    <p>You can see the thinking text in the yellow "🧠 Thinking" box in the chat, and hide it by clicking its header.</p>`},
 
-  seed:{t:'Seed  (rastgelelik tohumu)',html:`
-    <span class="tag">② Üretim · canlı</span>
-    <p>Rastgele seçimlerin başlangıç "tohumu". Aynı seed + aynı ayarlar + aynı mesaj = <b>birebir aynı yanıt</b> (tekrarlanabilirlik).</p>
-    <p><code>-1</code> = her seferinde rastgele tohum (her cevap farklı). Bir sonucu tıpatıp yeniden üretmek/karşılaştırma yapmak istersen sabit bir sayı (örn. 42) gir.</p>`},
+  seed:{t:'Seed  (randomness seed)',html:`
+    <span class="tag">② Generation · live</span>
+    <p>The starting "seed" for random choices. Same seed + same settings + same message = <b>exactly the same reply</b> (reproducibility).</p>
+    <p><code>-1</code> = a random seed each time (every reply differs). Enter a fixed number (e.g. 42) to reproduce a result exactly / compare runs.</p>`},
 
-  /* ---------- yeni: MODEL YÜKLEME ek bayrakları ---------- */
-  reasoning:{t:'🧠 Düşünme / Reasoning',html:`
-    <span class="tag">② Üretim · canlı (yeniden başlatma yok)</span>
-    <p>Bu model bir <b>"düşünen" modeldir</b>: asıl cevabı yazmadan önce kendi kendine sesli sesli akıl yürütür (reasoning). Bu adım da token harcar ve cevabı geciktirir.</p>
-    <p><code>auto</code> = şablonun varsayılanı (model düşünür).<br>
-    <code>aç</code> = her zaman düşün.<br>
-    <code>KAPAT</code> = <b>düşünmeyi tamamen atla</b> → model doğrudan cevaba geçer; çok daha hızlı ve kısa, ama çok zor sorularda biraz daha az isabetli olabilir.</p>
-    <div class="warnbox"><b>Sorduğun şey buydu:</b> düşünmeyi kapatmak için bunu <code>KAPAT</code> yap — etkisi <b>anında</b>, sunucuyu yeniden başlatmaya gerek yok. Bu bir GPU "katmanı" (-ngl) değildir; modelin davranış modudur. Perde arkasında isteğe <code>chat_template_kwargs: {enable_thinking:false}</code> eklenir (test edip doğruladım: düşünme tamamen sıfırlanıyor).</div>`},
+  /* ---------- extra MODEL LOADING / GENERATION flags ---------- */
+  reasoning:{t:'🧠 Thinking / Reasoning',html:`
+    <span class="tag">② Generation · live (no restart)</span>
+    <p>This model is a <b>"thinking" model</b>: before writing the actual answer it reasons out loud to itself. This step also costs tokens and delays the answer.</p>
+    <p><code>auto</code> = the template's default (the model thinks).<br>
+    <code>on</code> = always think.<br>
+    <code>OFF</code> = <b>skip thinking entirely</b> → the model goes straight to the answer; much faster and shorter, though it may be slightly less accurate on very hard questions.</p>
+    <div class="warnbox"><b>This is what you want to turn thinking off:</b> set this to <code>OFF</code> — the effect is <b>instant</b>, no server restart needed. It's not a GPU "layer" (-ngl); it's a behavior mode of the model. Under the hood, <code>chat_template_kwargs: {enable_thinking:false}</code> is added to the request (verified: thinking is fully suppressed).</div>`},
 
-  rbudget:{t:'Düşünme bütçesi  (--reasoning-budget)',html:`
-    <span class="tag">① Model Yükleme · yeniden başlatır</span>
-    <p>Düşünme açıkken modele <b>kaç token düşünmesine izin verileceğini</b> sınırlar.</p>
-    <p>Boş = sunucu varsayılanı · <code>-1</code> = sınırsız düşün · <code>0</code> = düşünmeyi anında bitir (pratikte <b>kapatmaya</b> en yakını) · <code>N</code> = en fazla N token düşün, sonra cevaba geç.</p>
-    <p>Düşünme uzasın ama kontrolden çıkmasın istiyorsan örn. <code>256</code> gibi bir sınır koyabilirsin.</p>`},
+  rbudget:{t:'Thinking budget  (--reasoning-budget)',html:`
+    <span class="tag">① Model Loading · restarts</span>
+    <p>When thinking is on, limits <b>how many tokens the model may spend thinking</b>.</p>
+    <p>Empty = server default · <code>-1</code> = think unlimited · <code>0</code> = end thinking immediately (closest to <b>off</b> in practice) · <code>N</code> = think at most N tokens, then answer.</p>
+    <p>If you want thinking allowed but not running away, set a limit like <code>256</code>.</p>`},
 
-  threads_batch:{t:'Batch iş parçacığı  (-tb)',html:`
-    <span class="tag">① Model Yükleme · yeniden başlatır</span>
-    <p>Prompt'u <b>toplu işlerken</b> (ilk okuma aşaması) kullanılacak iş parçacığı sayısı. Normal üretimdeki <code>-t</code>'den ayrı tutulabilir.</p>
-    <p>Boş = otomatik. Genelde dokunmana gerek yok; çok uzun prompt'larda CPU'yu daha iyi kullanmak için ayarlanabilir.</p>`},
+  threads_batch:{t:'Batch threads  (-tb)',html:`
+    <span class="tag">① Model Loading · restarts</span>
+    <p>The thread count used when <b>processing the prompt in bulk</b> (the initial read phase). Can be kept separate from <code>-t</code> used during normal generation.</p>
+    <p>Empty = automatic. Usually no need to touch it; can be tuned to use the CPU better on very long prompts.</p>`},
 
-  rope_scale:{t:'RoPE frekans ölçeği  (--rope-freq-scale)',html:`
-    <span class="tag">① Model Yükleme · yeniden başlatır</span>
-    <p>Bağlamı modelin eğitildiğinden <b>daha uzuna esnetmek</b> için kullanılan ölçek (RoPE/NTK ölçekleme). 1'in altındaki değerler pencereyi "sıkıştırarak" daha çok token sığdırır.</p>
-    <div class="warnbox">Yanlış değer modeli bozar (uzak konumlarda saçmalar). Modelin desteklemediği bir uzun bağlamı zorlamıyorsan <b>boş bırak</b>.</div>`},
+  rope_scale:{t:'RoPE frequency scale  (--rope-freq-scale)',html:`
+    <span class="tag">① Model Loading · restarts</span>
+    <p>A scale used to <b>stretch the context longer</b> than the model was trained for (RoPE/NTK scaling). Values below 1 "compress" the window to fit more tokens.</p>
+    <div class="warnbox">A wrong value breaks the model (nonsense at far positions). Unless you're forcing a long context the model doesn't support, <b>leave it empty</b>.</div>`},
 
-  parallel:{t:'Paralel slot  (-np)',html:`
-    <span class="tag">① Model Yükleme · yeniden başlatır</span>
-    <p>Sunucunun <b>aynı anda kaç ayrı isteği</b> işleyebileceği (slot sayısı). Tek kişilik sohbet için <code>1</code> yeterlidir.</p>
-    <p>Dikkat: her slot, bağlamı (-c) kendi arasında paylaşır; 2 yaparsan her sohbete yarısı düşer. Birden çok sekme/kullanıcı yoksa 1 bırak.</p>`},
+  parallel:{t:'Parallel slots  (-np)',html:`
+    <span class="tag">① Model Loading · restarts</span>
+    <p>How many <b>separate requests</b> the server can handle <b>at once</b> (slot count). <code>1</code> is enough for single-user chat.</p>
+    <p>Note: each slot shares the context (-c) among themselves; set 2 and each chat gets half. Leave it at 1 unless you have multiple tabs/users.</p>`},
 
-  nkvo:{t:'KV cache GPU\'ya konmasın  (-nkvo)',html:`
-    <span class="tag">① Model Yükleme · yeniden başlatır</span>
-    <p>İşaretlersen modelin "hafızası" (KV cache) GPU yerine <b>sistem RAM'inde</b> tutulur.</p>
-    <p><b>Ne zaman?</b> VRAM'in (8 GB) modele zar zor yetiyorsa, KV'yi RAM'e alıp GPU'da yer açabilirsin — ama <b>yavaşlar</b>. Bellek taşması (OOM) yaşıyorsan ngl düşürmenin alternatifidir.</p>`},
+  nkvo:{t:'Keep KV cache off GPU  (-nkvo)',html:`
+    <span class="tag">① Model Loading · restarts</span>
+    <p>If checked, the model's "memory" (KV cache) is held in <b>system RAM</b> instead of the GPU.</p>
+    <p><b>When?</b> If your VRAM barely fits the model, moving KV to RAM frees GPU space — but it <b>gets slower</b>. An alternative to lowering ngl when you hit out-of-memory (OOM).</p>`},
 
-  mlock:{t:'Belleğe kilitle  (--mlock)',html:`
-    <span class="tag">① Model Yükleme · yeniden başlatır</span>
-    <p>Modeli RAM'e <b>kilitler</b>, işletim sisteminin onu diske (sayfa dosyası) taşımasını engeller. Böylece beklenmedik yavaşlamalar olmaz.</p>
-    <p>Yeterli RAM'in varsa faydalı olabilir; az RAM'de sistemi zorlayabilir. Çoğu durumda kapalı bırakmak sorun değildir.</p>`},
+  mlock:{t:'Lock in RAM  (--mlock)',html:`
+    <span class="tag">① Model Loading · restarts</span>
+    <p><b>Locks</b> the model in RAM, preventing the OS from paging it to disk (page file). This avoids unexpected slowdowns.</p>
+    <p>Can help if you have enough RAM; may strain a low-RAM system. Leaving it off is fine in most cases.</p>`},
 
-  no_mmap:{t:'mmap kapalı  (--no-mmap)',html:`
-    <span class="tag">① Model Yükleme · yeniden başlatır</span>
-    <p>Normalde model dosyası <b>mmap</b> ile (gerektikçe diskten okunarak) açılır. Bunu işaretlersen model <b>tamamen RAM'e yüklenir</b>.</p>
-    <p>Açılış biraz yavaşlar ama bazı sistemlerde çalışma daha kararlı/hızlı olur. Genelde varsayılan (kapalı = mmap açık) iyidir.</p>`},
+  no_mmap:{t:'mmap off  (--no-mmap)',html:`
+    <span class="tag">① Model Loading · restarts</span>
+    <p>Normally the model file is opened via <b>mmap</b> (read from disk as needed). Check this to load the model <b>fully into RAM</b>.</p>
+    <p>Startup is a bit slower but on some systems it runs more stably/faster. The default (off = mmap on) is usually fine.</p>`},
 
-  /* ---------- yeni: ÜRETİM ek parametreleri ---------- */
   mtau:{t:'Mirostat τ (tau)',html:`
-    <span class="tag">② Üretim · canlı</span>
-    <p>Mirostat açıkken (yukarıdaki seçim v1/v2) hedeflenen <b>"şaşırtıcılık" seviyesidir</b>. Düşük τ = daha güvenli/odaklı metin, yüksek τ = daha çeşitli/yaratıcı.</p>
-    <p><code>5.0</code> tipik bir başlangıçtır. Mirostat <b>kapalıyken bu değerin etkisi yoktur.</b></p>`},
+    <span class="tag">② Generation · live</span>
+    <p>When Mirostat is on (v1/v2 above), this is the targeted <b>"surprise" level</b>. Low τ = safer/focused text, high τ = more varied/creative.</p>
+    <p><code>5.0</code> is a typical start. Has <b>no effect when Mirostat is off.</b></p>`},
 
   meta:{t:'Mirostat η (eta)',html:`
-    <span class="tag">② Üretim · canlı</span>
-    <p>Mirostat'ın hedefe <b>ne hızda uyum sağlayacağı</b> (öğrenme oranı). Yüksek η = daha hızlı ama oynak ayar, düşük η = daha yumuşak.</p>
-    <p><code>0.1</code> tipiktir. Yine yalnızca Mirostat açıkken iş görür.</p>`},
+    <span class="tag">② Generation · live</span>
+    <p>How <b>fast Mirostat adapts</b> to the target (learning rate). High η = faster but jittery, low η = smoother.</p>
+    <p><code>0.1</code> is typical. Again, only works when Mirostat is on.</p>`},
 
-  dtr:{t:'Dinamik sıcaklık aralığı  (dynatemp_range)',html:`
-    <span class="tag">② Üretim · canlı</span>
-    <p>Sıcaklığı sabit tutmak yerine, her adımda modelin ne kadar "emin" olduğuna göre <b>otomatik oynatır</b>. Etkin sıcaklık = (temp − range) … (temp + range) arasında değişir.</p>
-    <p><code>0</code> = kapalı (klasik sabit sıcaklık). Örn. 0.5 yaparsan emin olunan yerlerde daha kararlı, belirsiz yerlerde daha yaratıcı olur.</p>`},
+  dtr:{t:'Dynamic temperature range  (dynatemp_range)',html:`
+    <span class="tag">② Generation · live</span>
+    <p>Instead of a fixed temperature, <b>varies it automatically</b> each step based on how "confident" the model is. Effective temp ranges between (temp − range) … (temp + range).</p>
+    <p><code>0</code> = off (classic fixed temperature). Set e.g. 0.5 and it's steadier where it's confident, more creative where it's uncertain.</p>`},
 
-  dte:{t:'Dinamik sıcaklık üssü  (dynatemp_exponent)',html:`
-    <span class="tag">② Üretim · canlı</span>
-    <p>Dinamik sıcaklığın aralık içinde <b>nasıl dağılacağını</b> şekillendiren eğri. <code>1.0</code> doğrusaldır; büyütmek değişimi uçlara doğru keskinleştirir. Dinamik sıcaklık kapalıyken (aralık 0) etkisizdir.</p>`},
+  dte:{t:'Dynamic temperature exponent  (dynatemp_exponent)',html:`
+    <span class="tag">② Generation · live</span>
+    <p>The curve that shapes <b>how the dynamic temperature is distributed</b> within the range. <code>1.0</code> is linear; raising it sharpens the change toward the extremes. No effect when dynamic temp is off (range 0).</p>`},
 
-  drym:{t:'DRY çarpan  (dry_multiplier)',html:`
-    <span class="tag">② Üretim · canlı</span>
-    <p>DRY, klasik tekrar cezasından daha akıllı bir <b>tekrar engelidir</b>: tek kelimeyi değil, tekrar eden <b>kelime dizilerini/kalıpları</b> bastırır.</p>
-    <p><code>0</code> = DRY kapalı. <code>0.8</code> gibi bir değer iyi bir başlangıçtır. Model aynı cümle/kalıbı döngüye sokuyorsa bunu aç.</p>`},
+  drym:{t:'DRY multiplier  (dry_multiplier)',html:`
+    <span class="tag">② Generation · live</span>
+    <p>DRY is a <b>repetition blocker</b> smarter than the classic repeat penalty: it suppresses repeated <b>word sequences/patterns</b>, not single words.</p>
+    <p><code>0</code> = DRY off. A value like <code>0.8</code> is a good start. Turn it on if the model loops the same sentence/pattern.</p>`},
 
-  dryb:{t:'DRY taban  (dry_base)',html:`
-    <span class="tag">② Üretim · canlı</span>
-    <p>DRY cezasının tekrar uzadıkça <b>ne kadar hızlı büyüyeceği</b> (üstel taban). <code>1.75</code> tipiktir; yükseltmek uzun tekrarları daha sert cezalandırır. DRY çarpanı 0 ise etkisizdir.</p>`},
+  dryb:{t:'DRY base  (dry_base)',html:`
+    <span class="tag">② Generation · live</span>
+    <p>How <b>fast the DRY penalty grows</b> as repetition lengthens (exponential base). <code>1.75</code> typical; raising it punishes long repeats harder. No effect if DRY multiplier is 0.</p>`},
 
-  dryal:{t:'DRY izin verilen uzunluk  (dry_allowed_length)',html:`
-    <span class="tag">② Üretim · canlı</span>
-    <p>Bir kalıbın ceza yemeden tekrar edebileceği <b>en uzun token sayısı</b>. <code>2</code> = en fazla 2 token'lık tekrara izin ver, sonrası cezalı. Doğal kısa tekrarları (örn. "çok çok") boğmamak için vardır.</p>`},
+  dryal:{t:'DRY allowed length  (dry_allowed_length)',html:`
+    <span class="tag">② Generation · live</span>
+    <p>The <b>longest token count</b> a pattern may repeat without penalty. <code>2</code> = allow up to 2-token repeats, beyond that penalized. Exists so natural short repeats (e.g. "very very") aren't crushed.</p>`},
 
-  drypn:{t:'DRY ceza penceresi  (dry_penalty_last_n)',html:`
-    <span class="tag">② Üretim · canlı</span>
-    <p>DRY'nin tekrar ararken <b>kaç token geriye</b> bakacağı. <code>-1</code> = tüm bağlam, <code>0</code> = kapalı, <code>N</code> = son N token.</p>`},
+  drypn:{t:'DRY penalty window  (dry_penalty_last_n)',html:`
+    <span class="tag">② Generation · live</span>
+    <p>How <b>many tokens back</b> DRY looks for repeats. <code>-1</code> = whole context, <code>0</code> = off, <code>N</code> = last N tokens.</p>`},
 
-  xtcp:{t:'XTC olasılık  (xtc_probability)',html:`
-    <span class="tag">② Üretim · canlı</span>
-    <p>XTC ("Exclude Top Choices") bir <b>klişe kırıcıdır</b>: belirli olasılıkla en bariz/yüksek olasılıklı kelimeleri <b>eler</b>, böylece metin daha az tahmin edilebilir ve daha yaratıcı olur.</p>
-    <p><code>0</code> = kapalı. <code>0.5</code> = adımların yarısında devreye gir. Yaratıcı yazımda işe yarar; gerçek/teknik doğrulukta riskli olabilir.</p>`},
+  xtcp:{t:'XTC probability  (xtc_probability)',html:`
+    <span class="tag">② Generation · live</span>
+    <p>XTC ("Exclude Top Choices") is a <b>cliché breaker</b>: with a given probability it <b>drops the most obvious/high-probability words</b>, making text less predictable and more creative.</p>
+    <p><code>0</code> = off. <code>0.5</code> = engage on half the steps. Useful for creative writing; risky for factual/technical accuracy.</p>`},
 
-  xtct:{t:'XTC eşik  (xtc_threshold)',html:`
-    <span class="tag">② Üretim · canlı</span>
-    <p>XTC yalnızca olasılığı bu <b>eşikten yüksek</b> olan kelimeleri elemeyi düşünür. Yükseltmek XTC'yi daha seyrek/seçici yapar. <code>0.1</code> tipiktir. XTC olasılığı 0 iken etkisizdir.</p>`},
+  xtct:{t:'XTC threshold  (xtc_threshold)',html:`
+    <span class="tag">② Generation · live</span>
+    <p>XTC only considers dropping words above this <b>threshold</b> probability. Raising it makes XTC rarer/more selective. <code>0.1</code> typical. No effect when XTC probability is 0.</p>`},
 
   tns:{t:'top-n-sigma',html:`
-    <span class="tag">② Üretim · canlı</span>
-    <p>Olasılıkların istatistiksel dağılımına (standart sapma) göre, ana kümeden <b>çok sapan düşük olasılıklı kelimeleri eler</b>. Yüksek sıcaklıkta bile kaliteyi korumayı amaçlayan modern bir filtredir.</p>
-    <p><code>-1</code> = kapalı. Pozitif bir değer (örn. 1.0) verince devreye girer; küçük değer daha sıkı filtre demektir.</p>`},
+    <span class="tag">② Generation · live</span>
+    <p>Based on the statistical distribution (standard deviation) of probabilities, <b>drops low-probability words that deviate far</b> from the main cluster. A modern filter that aims to keep quality even at high temperature.</p>
+    <p><code>-1</code> = off. Set a positive value (e.g. 1.0) to engage it; smaller means a tighter filter.</p>`},
 
-  nkeep:{t:'Bağlamı koru  (n_keep)',html:`
-    <span class="tag">② Üretim · canlı</span>
-    <p>Bağlam (-c) dolup en eski mesajlar atılmaya başlandığında, <b>baştan kaç token'ın her zaman korunacağı</b>. Genelde sistem talimatının kaybolmaması için kullanılır.</p>
-    <p>Boş/0 = özel koruma yok. Uzun sohbetlerde sistem talimatının "unutulmasını" istemiyorsan artır.</p>`},
+  nkeep:{t:'Keep context  (n_keep)',html:`
+    <span class="tag">② Generation · live</span>
+    <p>When the context (-c) fills up and the oldest messages start getting dropped, <b>how many tokens from the start are always kept</b>. Usually used so the system prompt isn't lost.</p>
+    <p>Empty/0 = no special protection. Increase it in long chats if you don't want the system prompt "forgotten".</p>`},
 
-  stop:{t:'Durdurma dizileri  (stop)',html:`
-    <span class="tag">② Üretim · canlı</span>
-    <p>Model bu metinlerden <b>herhangi birini üretir üretmez yanıt anında kesilir</b>. Modelin sahte diyalog uydurmasını (örn. "Kullanıcı:" diye devam etmesini) engellemek için kullanışlıdır.</p>
-    <p>Birden fazlasını <b>virgülle</b> ayır: <code>###, Kullanıcı:, &lt;son&gt;</code>. Boş bırakırsan durdurma dizisi kullanılmaz.</p>`},
+  stop:{t:'Stop sequences  (stop)',html:`
+    <span class="tag">② Generation · live</span>
+    <p>The reply is <b>cut the instant the model produces any of these strings</b>. Useful to stop the model from inventing fake dialogue (e.g. continuing as "User:").</p>
+    <p>Separate multiple with <b>commas</b>: <code>###, User:, &lt;end&gt;</code>. Leave empty to use no stop sequence.</p>`},
 };
 
 function openInfo(key){
@@ -652,21 +651,21 @@ function openInfo(key){
 function closeInfo(){ $('modalBg').classList.remove('open'); }
 document.addEventListener('keydown',e=>{ if(e.key==='Escape')closeInfo(); });
 
-/* her ayar etiketinin yanına ⓘ butonu yerleştir */
+/* place an ⓘ button next to each setting label */
 (function injectInfo(){
   for(const key in HELP){
     const el=$(key); if(!el)continue;
     const field=el.closest('.field'); if(!field)continue;
     const label=field.querySelector('label'); if(!label)continue;
     const b=document.createElement('span');
-    b.className='info'; b.textContent='i'; b.title='Ne işe yarar?';
+    b.className='info'; b.textContent='i'; b.title='What does this do?';
     b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();openInfo(key);});
     const val=label.querySelector('.val');
     if(val) label.insertBefore(b,val); else label.appendChild(b);
   }
 })();
 
-/* ---- sunucu (yükleme) preset ---- */
+/* ---- server (loading) presets ---- */
 function serverPreset(k){
   const set=(o)=>{for(const key in o){const el=$(key);if(el){el.value=o[key];if(labels[key])$(labels[key]).textContent=o[key];}}};
   if(k==='safe')  {set({ngl:40,ctx:4096,rope_base:'',fa:'auto',ctk:'',ctv:''});}
@@ -674,11 +673,11 @@ function serverPreset(k){
   if(k==='cpu')   {set({ngl:0});}
   if(k==='rope')  {set({rope_base:'10000'});}
   if(k==='kv4')   {set({fa:'on',ctk:'q4_0',ctv:'q4_0'});}
-  $('ropeState').textContent=$('rope_base').value.trim()?('⚠️ '+$('rope_base').value):'varsayılan';
-  alert('Ayar yüklendi. Etkili olması için ▶ "Başlat / Yeniden başlat" de.');
+  $('ropeState').textContent=$('rope_base').value.trim()?('⚠️ '+$('rope_base').value):'default';
+  alert('Preset loaded. Click ▶ "Start / Restart" to apply.');
 }
 
-/* ---- üretim preset ---- */
+/* ---- generation presets ---- */
 function genPreset(k){
   const p={
     precise:{temp:0.2,topk:20,topp:0.9,minp:0.05,typ:1,rep:1.15,rln:64,pres:0,freq:0,max:1536,miro:'0'},
@@ -690,7 +689,7 @@ function genPreset(k){
   for(const key in p){const el=$(key);if(el){el.value=p[key];if(labels[key])$(labels[key]).textContent=p[key];}}
 }
 
-/* ---- sunucu kontrol ---- */
+/* ---- server control ---- */
 function serverConfig(){
   return {
     ngl:+$('ngl').value, ctx:+$('ctx').value, batch:+$('batch').value, ubatch:+$('ubatch').value,
@@ -705,24 +704,24 @@ function serverConfig(){
 }
 async function startServer(){
   $('logDrawer').classList.add('open');
-  $('startBtn').disabled=true; $('startBtn').textContent='Başlatılıyor...';
+  $('startBtn').disabled=true; $('startBtn').textContent='Starting...';
   try{
     await fetch('/api/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(serverConfig())});
   }catch(e){}
-  setTimeout(()=>{$('startBtn').disabled=false;$('startBtn').textContent='▶ Başlat / Yeniden başlat';},1500);
+  setTimeout(()=>{$('startBtn').disabled=false;$('startBtn').textContent='▶ Start / Restart';},1500);
 }
 async function stopServer(){ try{await fetch('/api/stop',{method:'POST'});}catch(e){} }
 
-/* ---- durum + log yoklama ---- */
+/* ---- status + log polling ---- */
 async function poll(){
   try{
     const s=await(await fetch('/api/status')).json();
     const ok=s.running&&s.healthy;
     $('dot').className='dot'+(ok?' on':(s.running?' warn':''));
     $('dot2').className='dot'+(ok?' on':(s.running?' warn':''));
-    $('srvState').textContent= ok?'sunucu hazır ✓':(s.running?'yükleniyor…':'sunucu kapalı');
+    $('srvState').textContent= ok?'server ready ✓':(s.running?'loading…':'server off');
     if(s.log_seq!==lastLogSeq){ lastLogSeq=s.log_seq; loadLogs(); }
-  }catch(e){ $('srvState').textContent='panel bağlantısı yok'; }
+  }catch(e){ $('srvState').textContent='no panel connection'; }
 }
 async function loadLogs(){
   try{
@@ -740,7 +739,7 @@ async function loadLogs(){
 }
 poll(); setInterval(poll,1500);
 
-/* ---- canlı GPU bellek göstergesi ---- */
+/* ---- live GPU memory meter ---- */
 const GB=1073741824; let gpuHist=[]; const GPU_N=80;
 async function pollGpu(){
   try{
@@ -750,22 +749,22 @@ async function pollGpu(){
       const used=g.dedicated/GB, sh=g.shared/GB, free=Math.max(0,tot-used), pct=Math.min(100,used/tot*100);
       const f=$('gfill'); f.style.width=pct+'%';
       f.style.background= pct>92?'var(--danger)' : pct>78?'var(--warn)' : 'var(--accent2)';
-      $('gtext').textContent=used.toFixed(1)+' / '+tot.toFixed(1)+' GB (%'+pct.toFixed(0)+' · boş '+free.toFixed(1)+' GB)';
-      // GERÇEK taşma yalnızca VRAM neredeyse dolu VE RAM'e kayma varken olur.
-      // Aksi halde "shared" miktarı normaldir (sürücü bazı tamponları boş VRAM'de bile RAM'de tutar).
+      $('gtext').textContent=used.toFixed(1)+' / '+tot.toFixed(1)+' GB ('+pct.toFixed(0)+'% · '+free.toFixed(1)+' GB free)';
+      // REAL overflow only happens when VRAM is nearly full AND it is spilling to RAM.
+      // Otherwise some "shared" usage is normal (the driver keeps some buffers in RAM even with free VRAM).
       const realSpill = pct>=92 && sh>0.3;
       const se=$('gshared');
       if(realSpill){
-        se.textContent='⚠️ VRAM doldu — '+sh.toFixed(1)+' GB RAM\'e taşıyor (yavaşlar)';
+        se.textContent='⚠️ VRAM full — '+sh.toFixed(1)+' GB spilling to RAM (slower)';
         se.className='gshared spill';
       }else{
-        se.textContent='RAM\'de (paylaşılan): '+sh.toFixed(1)+' GB';
+        se.textContent='In RAM (shared): '+sh.toFixed(1)+' GB';
         se.className='gshared';
       }
       gpuHist.push({d:used/tot, s:sh}); if(gpuHist.length>GPU_N)gpuHist.shift();
       drawSpark();
     }else{
-      $('gtext').textContent = tot>0 ? 'ölçülüyor…' : 'GPU okunamadı';
+      $('gtext').textContent = tot>0 ? 'measuring…' : 'GPU unavailable';
     }
   }catch(e){ $('gtext').textContent='—'; }
 }
@@ -783,37 +782,37 @@ function drawSpark(){
     });
     x.strokeStyle=color; x.lineWidth=1.5; x.stroke();
   };
-  line('d',1,'#7ee787');      // VRAM doluluğu (0–100%)
-  line('s',maxS,'#e3b341');   // RAM'e taşan (kendi ölçeğinde)
+  line('d',1,'#7ee787');      // VRAM fill (0–100%)
+  line('s',maxS,'#e3b341');   // spilled to RAM (its own scale)
 }
 pollGpu(); setInterval(pollGpu,1500);
 
-/* ---- sohbet ---- */
+/* ---- chat ---- */
 function addBubble(role,text,cls=''){
   $('empty')?.remove();
   const w=document.createElement('div'); w.className='msg '+(role==='user'?'user':'bot');
-  const a=document.createElement('div'); a.className='av'; a.textContent=role==='user'?'S':'AI';
+  const a=document.createElement('div'); a.className='av'; a.textContent=role==='user'?'U':'AI';
   const b=document.createElement('div'); b.className='bubble '+cls; b.textContent=text;
   w.appendChild(a); w.appendChild(b); $('chat').appendChild(w);
   $('chat').scrollTop=$('chat').scrollHeight; return b;
 }
-function clearChat(){messages=[];$('chat').innerHTML='<div class="empty" id="empty"><h3>🧹 Temizlendi</h3></div>';}
+function clearChat(){messages=[];$('chat').innerHTML='<div class="empty" id="empty"><h3>🧹 Cleared</h3></div>';}
 
-/* sohbet balonunu hem "düşünme" hem asıl yanıtla çiz */
+/* render the chat bubble with both the "thinking" and the actual reply */
 const escHtml=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
 function renderBubble(bb,think,acc,streaming){
   let html='';
   if(think){
-    const collapsed=acc?' collapsed':'';   // yanıt başlayınca düşünmeyi otomatik kapat
+    const collapsed=acc?' collapsed':'';   // auto-collapse thinking once the answer starts
     html+='<div class="think'+collapsed+'">'+
-      '<span class="tlabel" onclick="this.parentNode.classList.toggle(\'collapsed\')">🧠 Düşünme — göster/gizle</span>'+
+      '<span class="tlabel" onclick="this.parentNode.classList.toggle(\'collapsed\')">🧠 Thinking — show/hide</span>'+
       '<div class="ttext">'+escHtml(think)+'</div></div>';
   }
   html+='<span class="content">'+escHtml(acc)+(streaming?'▌':'')+'</span>';
   if(!streaming && !acc){
     html+= think
-      ? '<div class="hint" style="margin-top:7px;color:var(--warn)">⚠️ Model yalnızca "düşündü", asıl yanıta sıra gelmeden token doldu. <b>Maks. uzunluk</b>u artır (ⓘ).</div>'
-      : '(boş yanıt)';
+      ? '<div class="hint" style="margin-top:7px;color:var(--warn)">⚠️ The model only "thought" and ran out of tokens before the actual reply. Increase <b>Max length</b> (ⓘ).</div>'
+      : '(empty reply)';
   }
   bb.innerHTML=html;
 }
@@ -835,7 +834,7 @@ function genParams(){
   const nkeep=parseInt($('nkeep').value); if(!isNaN(nkeep)) p.n_keep=nkeep;
   const tns=parseFloat($('tns').value); if(!isNaN(tns)) p.top_n_sigma=tns;
   const stop=$('stop').value.split(',').map(s=>s.trim()).filter(Boolean); if(stop.length) p.stop=stop;
-  const rea=$('reasoning').value;   // düşünmeyi canlı aç/kapat (sohbet şablonu enable_thinking)
+  const rea=$('reasoning').value;   // toggle thinking live (chat template enable_thinking)
   if(rea==='off') p.chat_template_kwargs={enable_thinking:false};
   else if(rea==='on') p.chat_template_kwargs={enable_thinking:true};
   return p;
@@ -868,7 +867,7 @@ async function onSend(){
         if(!line.startsWith('data:'))continue;
         const data=line.slice(5).trim(); if(data==='[DONE]')continue;
         try{const j=JSON.parse(data); const delta=j.choices?.[0]?.delta||{};
-          const d=delta.content, rc=delta.reasoning_content;   // bu model önce "düşünür" (reasoning_content)
+          const d=delta.content, rc=delta.reasoning_content;   // this model "thinks" first (reasoning_content)
           if(rc){think+=rc;tok++;}
           if(d){acc+=d;tok++;}
           if(d||rc){renderBubble(bb,think,acc,true);$('chat').scrollTop=$('chat').scrollHeight;
@@ -885,12 +884,12 @@ async function onSend(){
     renderBubble(bb,think,acc,false);
     const note=document.createElement('div'); note.className='hint';
     note.style.marginTop='6px';
-    if(e.name==='AbortError'){ note.textContent='…(durduruldu)'; }
+    if(e.name==='AbortError'){ note.textContent='…(stopped)'; }
     else { note.textContent='⚠️ '+e.message; note.style.color='var(--danger)'; }
     bb.appendChild(note);
   }finally{ setStream(false); abortCtrl=null; }
 }
-function setStream(on){streaming=on;const b=$('sendBtn');b.textContent=on?'Durdur':'Gönder';b.classList.toggle('stop',on);}
+function setStream(on){streaming=on;const b=$('sendBtn');b.textContent=on?'Stop':'Send';b.classList.toggle('stop',on);}
 $('input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();onSend();}});
 $('input').addEventListener('input',e=>{e.target.style.height='auto';e.target.style.height=Math.min(e.target.scrollHeight,150)+'px';});
 </script>

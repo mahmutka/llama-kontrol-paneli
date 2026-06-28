@@ -1,89 +1,91 @@
 # llama-kontrol-paneli
 
-> Yerel LLM laboratuvarı — `llama.cpp` üzerinde **tarayıcıdan çalışan**, modelden bağımsız bir kontrol paneli.
+> A local LLM lab — a model-agnostic **browser-based control panel** for `llama.cpp`.
 
-Modeli yükleme ayarlarıyla (GPU katmanı, bağlam, KV cache, RoPE…) ve üretim ayarlarıyla
-(temperature, top-k/p, tekrar cezaları, mirostat, DRY, XTC…) **canlı** oynayabileceğin;
-yaptığın her değişikliğin etkisini **anında** görebileceğin küçük bir araç.
-Ekstra kütüphane gerektirmez — **yalnızca Python standart kütüphanesi** kullanır.
+A small tool that lets you tweak model-loading settings (GPU layers, context, KV cache, RoPE…)
+and generation settings (temperature, top-k/p, repetition penalties, mirostat, DRY, XTC…)
+**live**, and instantly see the effect of every change.
+No extra dependencies — it uses **only the Python standard library**.
 
-## ✨ Özellikler
+## ✨ Features
 
-- **İki bölümlü panel:** ① *Model Yükleme* (sunucuyu yeniden başlatır) ve ② *Üretim* (canlı, anında).
-- **Her ayar için açıklama:** her ayarın yanında bir **ⓘ** butonu — tıklayınca ne işe yaradığını uzun uzun anlatan bir pencere açılır.
-- **🧠 Düşünme (reasoning) aç/kapat:** "düşünen" modellerde düşünme aşamasını **canlı** (yeniden başlatmadan) kapatıp doğrudan/hızlı cevap alabilirsin.
-- **🎮 Canlı GPU VRAM göstergesi:** VRAM doluluğu çubuğu + RAM'e taşma (shared) miktarı + anlık sparkline grafiği. **AMD / Intel / NVIDIA fark etmez** (Windows performans sayaçları kullanılır, `nvidia-smi` gerekmez).
-- **Canlı log:** `llama-server`'ın tüm çıktısı panelde akar — bellek taşması, çökme vb. anında görünür.
-- **Hazır profiller + "bozma" çipleri:** Kesin / Dengeli / Yaratıcı profilleri ve modeli kasten bozup ne olduğunu görmek için 🌀 Kaos, 🔥 RoPE'yi boz, 💥 Bellek taşır gibi çipler.
-- **Modelden bağımsız:** `models/` klasöründeki ilk `.gguf` dosyasını otomatik seçer (adında `mmproj` geçen dosyayı görsel projektör olarak ayırır).
+- **Two-section panel:** ① *Model Loading* (restarts the server) and ② *Generation* (live, instant).
+- **Per-setting help:** every setting has an **ⓘ** button — click it for a window explaining what it does at length.
+- **🧠 Thinking (reasoning) toggle:** for "thinking" models you can turn the thinking phase off **live** (no restart) to get direct, fast answers.
+- **🎮 Live GPU VRAM meter:** a usage bar + the amount spilled to RAM (shared) + a live sparkline. **Works for AMD / Intel / NVIDIA** (uses Windows performance counters, no `nvidia-smi` needed).
+- **Live log:** all `llama-server` output streams in the panel — memory overflow, crashes, etc. show up instantly.
+- **Presets + "break it" chips:** Precise / Balanced / Creative presets, plus chips to intentionally break the model and watch what happens: 🌀 Chaos, 🔥 Break RoPE, 💥 Overflow VRAM.
+- **Model-agnostic:** auto-selects the first `.gguf` file in `models/` (a file whose name contains `mmproj` is treated as the vision projector).
 
-## 🧩 Mimari
+## 🧩 Architecture
 
 ```
-Tarayıcı ──HTTP──► kontrol_paneli.py (port 8080) ──proxy──► llama-server.exe (port 8081)
-   panel.html        (Python, stdlib)                         (senin seçtiğin parametrelerle)
+Browser ──HTTP──► kontrol_paneli.py (port 8080) ──proxy──► llama-server.exe (port 8081)
+   panel.html        (Python, stdlib)                       (with your chosen parameters)
 ```
 
-`kontrol_paneli.py` paneli (panel.html) sunar; "Başlat" deyince arka planda `llama-server`'ı
-seçtiğin ayarlarla çalıştırır, sohbet isteklerini ona yönlendirir ve çıktısını canlı log olarak gösterir.
+`kontrol_paneli.py` serves the panel (panel.html); when you click "Start" it launches
+`llama-server` in the background with your chosen settings, forwards chat requests to it,
+and shows its output as a live log.
 
-## 📦 Gereksinimler
+## 📦 Requirements
 
-- **Windows** (GPU bellek göstergesi Windows performans sayaçlarını kullanır)
-- **Python 3.8+** (ek paket yok)
-- **llama.cpp** ikili dosyaları (`bin/` içine) — AMD/Intel için **Vulkan**, NVIDIA için **CUDA** sürümü
-- Bir **GGUF model** (`models/` içine)
+- **Windows** (the GPU memory meter uses Windows performance counters)
+- **Python 3.8+** (no extra packages)
+- **llama.cpp** binaries (into `bin/`) — **Vulkan** build for AMD/Intel, **CUDA** build for NVIDIA
+- A **GGUF model** (into `models/`)
 
-## 🚀 Kurulum
+## 🚀 Setup
 
-1. **Bu depoyu klonla:**
+1. **Clone this repo:**
    ```bash
-   git clone https://github.com/<kullanıcı-adın>/llama-kontrol-paneli.git
+   git clone https://github.com/<your-username>/llama-kontrol-paneli.git
    cd llama-kontrol-paneli
    ```
 
-2. **llama.cpp indir → `bin/`:**
-   [llama.cpp Releases](https://github.com/ggml-org/llama.cpp/releases) sayfasından sistemine uygun
-   sürümü (AMD/Intel = `vulkan`, NVIDIA = `cuda`) indir ve içindeki tüm dosyaları (`llama-server.exe`,
-   `llama-cli.exe`, `*.dll`…) `bin/` klasörüne çıkar.
+2. **Download llama.cpp → `bin/`:**
+   From the [llama.cpp Releases](https://github.com/ggml-org/llama.cpp/releases) page, download the
+   build for your system (AMD/Intel = `vulkan`, NVIDIA = `cuda`) and extract all of its files
+   (`llama-server.exe`, `llama-cli.exe`, `*.dll`…) into the `bin/` folder.
 
-3. **Bir model indir → `models/`:**
-   Hugging Face'ten bir `.gguf` model indir (ör. quantize edilmiş 7B–12B bir sohbet modeli) ve
-   `models/` klasörüne koy. Çok-kipli (görsel) bir model kullanıyorsan `mmproj-*.gguf` dosyasını da
-   aynı klasöre koy — otomatik algılanır.
+3. **Download a model → `models/`:**
+   Get a `.gguf` model from Hugging Face (e.g. a quantized 7B–12B chat model) and put it in the
+   `models/` folder. If you use a multimodal (vision) model, also drop the `mmproj-*.gguf` file
+   into the same folder — it's auto-detected.
 
-4. **Paneli başlat:**
-   `KONTROL-PANELI.bat` dosyasına çift tıkla. Tarayıcı `http://127.0.0.1:8080` adresinde açılır.
-   (Veya elle: `python kontrol_paneli.py`)
+4. **Start the panel:**
+   Double-click `KONTROL-PANELI.bat`. Your browser opens at `http://127.0.0.1:8080`.
+   (Or manually: `python kontrol_paneli.py`)
 
-## 🖱️ Kullanım
+## 🖱️ Usage
 
-1. Panelde **① Model Yükleme → ▶ Başlat** de (model GPU'ya yüklenir, ~10–20 sn).
-2. **② Üretim** ayarlarıyla oyna — bunlar canlıdır, mesaj gönderdikçe etkisini görürsün.
-3. Bir ayarın ne yaptığını merak edersen yanındaki **ⓘ** butonuna tıkla.
-4. Üstteki **🎮 GPU VRAM** şeridinden belleğin nasıl dolduğunu, taşıp taşmadığını canlı izle.
+1. In the panel, click **① Model Loading → ▶ Start** (the model loads onto the GPU, ~10–20 s).
+2. Play with the **② Generation** settings — these are live; you see their effect as you send messages.
+3. Wondering what a setting does? Click the **ⓘ** button next to it.
+4. Watch the **🎮 GPU VRAM** strip at the top to see memory fill up and whether it overflows, live.
 
-### Ek başlatıcılar
-- `KONTROL-PANELI.bat` — asıl kontrol paneli (önerilen).
-- `OYUN-ALANI.bat` — llama.cpp'nin kendi dahili web arayüzü (`playground/`).
-- `web-arayuz.bat` — sade `llama-server` web arayüzü.
-- `sohbet.bat` — terminalde sohbet (`llama-cli`).
+### Other launchers
+- `KONTROL-PANELI.bat` — the main control panel (recommended).
+- `OYUN-ALANI.bat` — llama.cpp's own built-in web UI (`playground/`).
+- `web-arayuz.bat` — plain `llama-server` web UI.
+- `sohbet.bat` — chat in the terminal (`llama-cli`).
 
-> Tüm `.bat` dosyaları `models/` içindeki ilk `.gguf` modeli otomatik seçer.
+> All `.bat` files auto-select the first `.gguf` model in `models/`.
 
-## 💡 İyi bilinen birkaç davranış
+## 💡 A few known behaviors
 
-- **Boş yanıt mı geliyor?** "Düşünen" modeller cevabı ayrı bir `reasoning_content` akışında üretir;
-  *Maks. uzunluk* çok düşükse model düşünürken token biter ve cevap boş görünür. Bu panel düşünmeyi
-  ayrı gösterir ve istersen **② Üretim → 🧠 Düşünme → KAPAT** ile tamamen kapatabilirsin.
-- **VRAM'e biraz taşmak, katmanı CPU'ya bırakmaktan iyidir.** `-ngl` düşükken katmanlar CPU'da
-  çalışır ve çok yavaşlar; yüksek `-ngl` ile her şey GPU'da olur (gerekirse bir kısmı RAM'e taşar ama
-  hesabı yine GPU yapar). En hızlısı genelde "tüm katmanlar GPU'da" noktasıdır.
+- **Getting empty replies?** "Thinking" models stream the answer in a separate `reasoning_content`
+  field; if *Max length* is too low, the model runs out of tokens while thinking and the reply looks
+  empty. This panel shows the thinking separately, and you can fully disable it via
+  **② Generation → 🧠 Thinking → OFF**.
+- **Spilling a bit to VRAM beats leaving layers on the CPU.** With low `-ngl`, layers run on the CPU
+  and it gets very slow; with high `-ngl` everything is on the GPU (some of it may spill to RAM, but
+  the GPU still does the compute). The fastest point is usually "all layers on the GPU".
 
-## 📄 Lisans
+## 📄 License
 
 [MIT](LICENSE)
 
-## 🙏 Teşekkür
+## 🙏 Acknowledgements
 
-[ggml-org/llama.cpp](https://github.com/ggml-org/llama.cpp) — bu panel onun üzerine kurulu.
+[ggml-org/llama.cpp](https://github.com/ggml-org/llama.cpp) — this panel is built on top of it.

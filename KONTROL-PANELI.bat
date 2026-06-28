@@ -1,21 +1,21 @@
 @echo off
 chcp 65001 >nul
-title llama.cpp - Kontrol Paneli
+title llama.cpp - Control Panel
 cd /d "%~dp0"
 
 echo ============================================================
-echo   llama.cpp KONTROL PANELI  (yerel LLM laboratuvari)
-echo   Tarayici birazdan acilacak:  http://127.0.0.1:8080
-echo   Bu pencereyi kapatma! (paneli kapatmak icin Ctrl+C)
+echo   llama.cpp CONTROL PANEL  (local LLM lab)
+echo   Your browser will open shortly:  http://127.0.0.1:8080
+echo   Don't close this window! (press Ctrl+C to stop the panel)
 echo ============================================================
 echo.
 
-REM Panel acilinca tarayiciyi ac
+REM Open the browser once the panel is up
 start "" /min cmd /c "timeout /t 3 >nul && start http://127.0.0.1:8080"
 
-REM Python kontrol panelini calistir
+REM Run the Python control panel
 python kontrol_paneli.py
 
 echo.
-echo Panel kapandi.
+echo Panel closed.
 pause

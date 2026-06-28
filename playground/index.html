@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Yerel LLM · Oyun Alanı (llama.cpp)</title>
+<title>Local LLM · Playground (llama.cpp)</title>
 <style>
   :root {
     --bg: #0d1117;
@@ -26,7 +26,7 @@
     display: flex; height: 100vh; overflow: hidden;
   }
 
-  /* ---------- Sol panel: ayarlar ---------- */
+  /* ---------- Left panel: settings ---------- */
   .sidebar {
     width: 340px; min-width: 340px; background: var(--panel);
     border-right: 1px solid var(--border);
@@ -54,7 +54,7 @@
   textarea:focus, input:focus { outline: none; border-color: var(--accent); }
   .hint { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.4; }
 
-  /* ---------- Sağ taraf: sohbet ---------- */
+  /* ---------- Right side: chat ---------- */
   .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
   .topbar {
     padding: 10px 18px; border-bottom: 1px solid var(--border);
@@ -76,7 +76,7 @@
   .empty { margin: auto; text-align: center; color: var(--muted); }
   .empty h3 { color: var(--text); font-weight: 600; }
 
-  /* ---------- Giriş alanı ---------- */
+  /* ---------- Input area ---------- */
   .inputbar { padding: 14px 18px; border-top: 1px solid var(--border); background: var(--panel); }
   .inputrow { display: flex; gap: 10px; align-items: flex-end; }
   .inputrow textarea { flex: 1; max-height: 160px; min-height: 44px; }
@@ -89,84 +89,84 @@
 </style>
 </head>
 <body>
-  <!-- ============ AYARLAR ============ -->
+  <!-- ============ SETTINGS ============ -->
   <aside class="sidebar">
-    <h1><span class="dot" id="statusDot"></span> Yerel LLM · Oyun Alanı</h1>
+    <h1><span class="dot" id="statusDot"></span> Local LLM · Playground</h1>
 
     <div class="group">
-      <h2>Sistem talimatı</h2>
+      <h2>System prompt</h2>
       <div class="field">
-        <textarea id="system" rows="3" placeholder="Modelin kişiliği / görevi...">Sen yardımsever, Türkçe konuşan bir asistansın.</textarea>
-        <div class="hint">Modele "kim olduğunu" söyler. Değiştirip sohbeti temizleyince etkisini görürsün.</div>
+        <textarea id="system" rows="3" placeholder="The model's personality / task...">You are a helpful assistant.</textarea>
+        <div class="hint">Tells the model "who it is". Change it and clear the chat to see the effect.</div>
       </div>
     </div>
 
     <div class="group">
-      <h2>Üretim ayarları (canlı)</h2>
+      <h2>Generation settings (live)</h2>
 
       <div class="field">
-        <label>Sıcaklık (temperature) <span class="val" id="tempVal">0.8</span></label>
+        <label>Temperature <span class="val" id="tempVal">0.8</span></label>
         <input type="range" id="temp" min="0" max="2" step="0.05" value="0.8" />
-        <div class="hint">Düşük = tutarlı/sıkıcı, yüksek = yaratıcı/dağınık.</div>
+        <div class="hint">Low = consistent/boring, high = creative/scattered.</div>
       </div>
 
       <div class="field">
         <label>Top-P <span class="val" id="toppVal">0.95</span></label>
         <input type="range" id="topp" min="0" max="1" step="0.01" value="0.95" />
-        <div class="hint">Olasılık havuzunu daraltır. Genelde 0.9–0.95.</div>
+        <div class="hint">Narrows the probability pool. Usually 0.9–0.95.</div>
       </div>
 
       <div class="field">
         <label>Top-K <span class="val" id="topkVal">40</span></label>
         <input type="range" id="topk" min="0" max="100" step="1" value="40" />
-        <div class="hint">Her adımda en olası kaç kelime arasından seçsin.</div>
+        <div class="hint">How many of the most likely words to choose from each step.</div>
       </div>
 
       <div class="field">
-        <label>Tekrar cezası (repeat penalty) <span class="val" id="repVal">1.1</span></label>
+        <label>Repeat penalty <span class="val" id="repVal">1.1</span></label>
         <input type="range" id="rep" min="1" max="1.5" step="0.01" value="1.1" />
-        <div class="hint">Yüksek = kendini tekrarlamaz.</div>
+        <div class="hint">Higher = avoids repeating itself.</div>
       </div>
 
       <div class="field">
-        <label>Maks. yanıt uzunluğu <span class="val" id="maxVal">512</span></label>
+        <label>Max reply length <span class="val" id="maxVal">512</span></label>
         <input type="range" id="max" min="64" max="2048" step="64" value="512" />
-        <div class="hint">Bir cevapta en fazla kaç token üretsin.</div>
+        <div class="hint">Max tokens to produce in one reply.</div>
       </div>
     </div>
 
     <div class="group">
-      <h2>Hazır kalıplar</h2>
+      <h2>Presets</h2>
       <div class="field">
-        <button class="ghost" style="width:100%;margin-bottom:8px" onclick="preset('precise')">🎯 Kesin / Tutarlı</button>
-        <button class="ghost" style="width:100%;margin-bottom:8px" onclick="preset('balanced')">⚖️ Dengeli</button>
-        <button class="ghost" style="width:100%" onclick="preset('creative')">🎨 Yaratıcı</button>
+        <button class="ghost" style="width:100%;margin-bottom:8px" onclick="preset('precise')">🎯 Precise / Consistent</button>
+        <button class="ghost" style="width:100%;margin-bottom:8px" onclick="preset('balanced')">⚖️ Balanced</button>
+        <button class="ghost" style="width:100%" onclick="preset('creative')">🎨 Creative</button>
       </div>
     </div>
   </aside>
 
-  <!-- ============ SOHBET ============ -->
+  <!-- ============ CHAT ============ -->
   <main class="main">
     <div class="topbar">
-      <span class="stat">Durum: <b id="connState">bağlanıyor…</b></span>
-      <span class="stat">Hız: <b id="speed">—</b> tok/sn</span>
-      <span class="stat">Son yanıt: <b id="lastTokens">—</b> token / <b id="lastTime">—</b> sn</span>
+      <span class="stat">Status: <b id="connState">connecting…</b></span>
+      <span class="stat">Speed: <b id="speed">—</b> tok/s</span>
+      <span class="stat">Last reply: <b id="lastTokens">—</b> tokens / <b id="lastTime">—</b> s</span>
       <span class="spacer"></span>
       <span class="stat" id="modelName">—</span>
     </div>
 
     <div class="chat" id="chat">
       <div class="empty" id="empty">
-        <h3>👋 Merhaba!</h3>
-        <p>Soldaki ayarlarla oyna, aşağıdan mesaj yaz.<br>Aynı soruyu farklı "sıcaklık" değerleriyle sorup farkı gör.</p>
+        <h3>👋 Hello!</h3>
+        <p>Play with the settings on the left, type a message below.<br>Ask the same question at different "temperature" values and see the difference.</p>
       </div>
     </div>
 
     <div class="inputbar">
       <div class="inputrow">
-        <textarea id="input" rows="1" placeholder="Mesajını yaz... (Enter = gönder, Shift+Enter = alt satır)"></textarea>
-        <button class="ghost" onclick="clearChat()">Temizle</button>
-        <button class="send" id="sendBtn" onclick="onSend()">Gönder</button>
+        <textarea id="input" rows="1" placeholder="Type your message... (Enter = send, Shift+Enter = new line)"></textarea>
+        <button class="ghost" onclick="clearChat()">Clear</button>
+        <button class="send" id="sendBtn" onclick="onSend()">Send</button>
       </div>
     </div>
   </main>
@@ -177,7 +177,7 @@ let messages = [];      // {role, content}
 let streaming = false;
 let abortCtrl = null;
 
-// --- kaydırıcıları etiketlere bağla ---
+// --- bind sliders to their labels ---
 const sliders = {temp:'tempVal', topp:'toppVal', topk:'topkVal', rep:'repVal', max:'maxVal'};
 for (const [s, lbl] of Object.entries(sliders)) {
   $(s).addEventListener('input', () => $(lbl).textContent = $(s).value);
@@ -192,33 +192,33 @@ function preset(kind) {
   for (const k in p) { $(k).value = p[k]; $(sliders[k]).textContent = p[k]; }
 }
 
-// --- sunucu durumunu yokla ---
+// --- poll the server status ---
 async function checkHealth() {
   try {
     const r = await fetch('/v1/models');
     if (r.ok) {
       const d = await r.json();
       $('statusDot').classList.add('on');
-      $('connState').textContent = 'hazır ✓';
-      $('modelName').textContent = (d.data && d.data[0] && d.data[0].id) ? d.data[0].id.split(/[\\/]/).pop() : 'model yüklü';
+      $('connState').textContent = 'ready ✓';
+      $('modelName').textContent = (d.data && d.data[0] && d.data[0].id) ? d.data[0].id.split(/[\\/]/).pop() : 'model loaded';
       return;
     }
   } catch (e) {}
   $('statusDot').classList.remove('on');
-  $('connState').textContent = 'sunucu kapalı';
-  $('modelName').textContent = 'web-arayuz.bat çalışıyor mu?';
+  $('connState').textContent = 'server off';
+  $('modelName').textContent = 'is web-ui running?';
 }
 checkHealth();
 setInterval(checkHealth, 4000);
 
-// --- mesaj kutusu çiz ---
+// --- draw a message bubble ---
 function addBubble(role, text, cls='') {
   $('empty')?.remove();
   const wrap = document.createElement('div');
   wrap.className = 'msg ' + (role === 'user' ? 'user' : 'bot');
   const av = document.createElement('div');
   av.className = 'avatar';
-  av.textContent = role === 'user' ? 'S' : 'G';
+  av.textContent = role === 'user' ? 'U' : 'AI';
   const b = document.createElement('div');
   b.className = 'bubble ' + cls;
   b.textContent = text;
@@ -230,10 +230,10 @@ function addBubble(role, text, cls='') {
 
 function clearChat() {
   messages = [];
-  $('chat').innerHTML = '<div class="empty" id="empty"><h3>🧹 Sohbet temizlendi</h3><p>Sistem talimatı yeni mesajdan itibaren geçerli olacak.</p></div>';
+  $('chat').innerHTML = '<div class="empty" id="empty"><h3>🧹 Chat cleared</h3><p>The system prompt will apply from the next message.</p></div>';
 }
 
-// --- gönder ---
+// --- send ---
 async function onSend() {
   if (streaming) { abortCtrl?.abort(); return; }
   const text = $('input').value.trim();
@@ -304,7 +304,7 @@ async function onSend() {
         } catch (e) {}
       }
     }
-    botBubble.textContent = acc || '(boş yanıt)';
+    botBubble.textContent = acc || '(empty reply)';
     messages.push({role:'assistant', content:acc});
     const secs = (performance.now() - t0) / 1000;
     $('lastTokens').textContent = tokCount;
@@ -312,7 +312,7 @@ async function onSend() {
     $('speed').textContent = (tokCount / secs).toFixed(1);
   } catch (e) {
     botBubble.classList.remove('thinking');
-    botBubble.textContent = acc + (e.name === 'AbortError' ? '  …(durduruldu)' : '  ⚠️ Hata: ' + e.message);
+    botBubble.textContent = acc + (e.name === 'AbortError' ? '  …(stopped)' : '  ⚠️ Error: ' + e.message);
     if (e.name !== 'AbortError') botBubble.style.color = 'var(--danger)';
   } finally {
     setStreaming(false);
@@ -323,11 +323,11 @@ async function onSend() {
 function setStreaming(on) {
   streaming = on;
   const btn = $('sendBtn');
-  btn.textContent = on ? 'Durdur' : 'Gönder';
+  btn.textContent = on ? 'Stop' : 'Send';
   btn.classList.toggle('stop', on);
 }
 
-// --- Enter ile gönder, textarea otomatik büyüsün ---
+// --- send on Enter, auto-grow the textarea ---
 $('input').addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend(); }
 });

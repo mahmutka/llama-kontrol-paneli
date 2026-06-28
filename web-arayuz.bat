@@ -1,7 +1,7 @@
 @echo off
 chcp 65001 >nul
-REM === llama.cpp dahili web arayuzu ===
-REM Calistirinca tarayicidan su adresi ac:  http://127.0.0.1:8080
+REM === llama.cpp built-in web UI ===
+REM After running, open this in your browser:  http://127.0.0.1:8080
 cd /d "%~dp0"
 
 set "MODEL="
@@ -14,7 +14,7 @@ for %%f in (models\*.gguf) do (
     set "MMPROJ=%%f"
   )
 )
-if not defined MODEL ( echo [!] models\ klasorunde .gguf model yok. & pause & exit /b 1 )
+if not defined MODEL ( echo [!] No .gguf model in models\. & pause & exit /b 1 )
 set "MMARG="
 if defined MMPROJ set MMARG=--mmproj "%MMPROJ%"
 
