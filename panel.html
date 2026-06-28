@@ -55,6 +55,12 @@
   .btn:disabled{opacity:.45;cursor:not-allowed;}
   .btnrow{display:flex;gap:8px;margin-top:6px;}
   .btnrow .btn{flex:1;}
+  /* ---- always-visible start bar (sticky bottom of sidebar) ---- */
+  .startbar{position:sticky;bottom:0;margin-top:auto;background:var(--panel);
+    border-top:1px solid var(--border);padding:11px 16px;display:flex;gap:8px;z-index:6;
+    box-shadow:0 -6px 18px rgba(0,0,0,.4);}
+  .startbar #startBtn{flex:1;padding:12px;font-size:14px;}
+  .startbar #stopBtn{flex:0 0 auto;}
   .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
   .chip{font-size:11.5px;padding:5px 9px;border-radius:20px;background:var(--panel2);border:1px solid var(--border);
     color:var(--muted);cursor:pointer;}
@@ -235,10 +241,6 @@
         </div>
         <div class="field"><label style="cursor:pointer;"><input type="checkbox" id="no_mmap" style="width:auto;margin-right:7px;"/>mmap off (--no-mmap)</label></div>
 
-        <div class="btnrow">
-          <button class="btn primary" id="startBtn" onclick="startServer()">▶ Start / Restart</button>
-          <button class="btn ghost" onclick="stopServer()" style="flex:0 0 auto;">⏹ Stop</button>
-        </div>
         <div class="chips">
           <span class="chip" onclick="serverPreset('safe')">✅ Safe (ngl 40)</span>
           <span class="chip bad" onclick="serverPreset('oom')">💥 Overflow VRAM (ngl 99)</span>
@@ -334,6 +336,12 @@
           <span class="chip bad" onclick="genPreset('stuck')">🔁 Stuck (rep 1.0, k 1)</span>
         </div>
       </div>
+    </div>
+
+    <!-- ---- always-visible start bar ---- -->
+    <div class="startbar">
+      <button class="btn primary" id="startBtn" onclick="startServer()">▶ Start / Restart server</button>
+      <button class="btn ghost" id="stopBtn" onclick="stopServer()">⏹ Stop</button>
     </div>
   </aside>
 
