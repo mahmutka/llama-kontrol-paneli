@@ -14,7 +14,7 @@ REM Open the browser once the panel is up
 start "" /min cmd /c "timeout /t 3 >nul && start http://127.0.0.1:8080"
 
 REM Run the Python control panel
-python kontrol_paneli.py
+python control_panel.py
 
 echo.
 echo Panel closed.

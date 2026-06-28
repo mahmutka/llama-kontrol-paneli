@@ -1,4 +1,4 @@
-# llama-kontrol-paneli
+# llama-control-panel
 
 > A local LLM lab — a model-agnostic **browser-based control panel** for `llama.cpp`.
 
@@ -20,11 +20,11 @@ No extra dependencies — it uses **only the Python standard library**.
 ## 🧩 Architecture
 
 ```
-Browser ──HTTP──► kontrol_paneli.py (port 8080) ──proxy──► llama-server.exe (port 8081)
+Browser ──HTTP──► control_panel.py (port 8080) ──proxy──► llama-server.exe (port 8081)
    panel.html        (Python, stdlib)                       (with your chosen parameters)
 ```
 
-`kontrol_paneli.py` serves the panel (panel.html); when you click "Start" it launches
+`control_panel.py` serves the panel (panel.html); when you click "Start" it launches
 `llama-server` in the background with your chosen settings, forwards chat requests to it,
 and shows its output as a live log.
 
@@ -39,8 +39,8 @@ and shows its output as a live log.
 
 1. **Clone this repo:**
    ```bash
-   git clone https://github.com/<your-username>/llama-kontrol-paneli.git
-   cd llama-kontrol-paneli
+   git clone https://github.com/<your-username>/llama-control-panel.git
+   cd llama-control-panel
    ```
 
 2. **Download llama.cpp → `bin/`:**
@@ -54,8 +54,8 @@ and shows its output as a live log.
    into the same folder — it's auto-detected.
 
 4. **Start the panel:**
-   Double-click `KONTROL-PANELI.bat`. Your browser opens at `http://127.0.0.1:8080`.
-   (Or manually: `python kontrol_paneli.py`)
+   Double-click `CONTROL-PANEL.bat`. Your browser opens at `http://127.0.0.1:8080`.
+   (Or manually: `python control_panel.py`)
 
 ## 🖱️ Usage
 
@@ -65,10 +65,10 @@ and shows its output as a live log.
 4. Watch the **🎮 GPU VRAM** strip at the top to see memory fill up and whether it overflows, live.
 
 ### Other launchers
-- `KONTROL-PANELI.bat` — the main control panel (recommended).
-- `OYUN-ALANI.bat` — llama.cpp's own built-in web UI (`playground/`).
-- `web-arayuz.bat` — plain `llama-server` web UI.
-- `sohbet.bat` — chat in the terminal (`llama-cli`).
+- `CONTROL-PANEL.bat` — the main control panel (recommended).
+- `PLAYGROUND.bat` — llama.cpp's own built-in web UI (`playground/`).
+- `web-ui.bat` — plain `llama-server` web UI.
+- `chat.bat` — chat in the terminal (`llama-cli`).
 
 > All `.bat` files auto-select the first `.gguf` model in `models/`.
 
